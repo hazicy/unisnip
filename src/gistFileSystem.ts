@@ -118,8 +118,15 @@ export class GistFileSystemProvider implements vscode.FileSystemProvider {
     _options: { readonly recursive: boolean },
   ): Promise<void> {
     const { gistId, filename, providerId } = this.parseUri(uri);
+
     const provider = this.manager.getService(providerId);
+
+    if (!uri.path) {
+      await provider?.deleteGist(gistId);
+    }
+
     await provider?.deleteGistFile(gistId, filename);
+
     this.notifyFileChanged(uri, vscode.FileChangeType.Deleted);
   }
 

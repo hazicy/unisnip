@@ -6,11 +6,12 @@ import type {
   ProviderConfig,
 } from '../../providers/gist/types';
 import type { GistServiceManager } from '../../services/gist/gistManager';
+import { SCHEMA } from '../../extension';
 
 export type GistTreeItem = {
   gist?: Gist;
   adapter?: GistProviderEnum;
-  providerConfig?: ProviderConfig;
+  providerId: string;
 } & vscode.TreeItem;
 
 export class GistTreeProvider implements vscode.TreeDataProvider<GistTreeItem> {
@@ -53,18 +54,23 @@ export class GistTreeProvider implements vscode.TreeDataProvider<GistTreeItem> {
 
     const items: GistTreeItem[] = [];
 
-    for (const [id, provider] of providers) {
+    for (const [providerId, provider] of providers) {
       const gists = await provider.getGists();
       for (const gist of gists) {
+        const gistUri = vscode.Uri.from({
+          scheme: SCHEMA,
+          authority: providerId,
+          query: `id=${gist.id}`,
+        });
+
         items.push({
           gist,
           collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
           iconPath: vscode.ThemeIcon.Folder,
           id: gist.id,
           label: gist.description || L10n.t('unnamedGist'),
-          providerConfig: {
-            id,
-          },
+          providerId,
+          resourceUri: gistUri,
           contextValue: 'gistFolder',
         });
       }
@@ -74,9 +80,11 @@ export class GistTreeProvider implements vscode.TreeDataProvider<GistTreeItem> {
   }
 
   private async getFileItems(element: GistTreeItem): Promise<GistTreeItem[]> {
-    const service = this.gistManager.getService(
-      element.providerConfig?.id ?? '',
-    );
+    if (!element.providerId) {
+      throw new Error('');
+    }
+
+    const service = this.gistManager.getService(element.providerId);
 
     if (!element.id) {
       throw vscode.FileSystemError.FileExists();
@@ -84,11 +92,15 @@ export class GistTreeProvider implements vscode.TreeDataProvider<GistTreeItem> {
 
     const gist = await service?.getGist(element.id);
 
-    const files = Object.entries(gist?.files ?? {});
+    const files = Object.keys(gist?.files ?? {});
 
-    const items = files.map((file): GistTreeItem => {
-      const filename = file[0];
-      const fileContent = file[1];
+    const items = files.map((filename): GistTreeItem => {
+      const fileUri = vscode.Uri.from({
+        scheme: SCHEMA,
+        authority: element.providerId,
+        path: `/${filename}`,
+        query: `id=${gist?.id}`,
+      });
 
       return {
         id: filename,
@@ -97,8 +109,10 @@ export class GistTreeProvider implements vscode.TreeDataProvider<GistTreeItem> {
         command: {
           command: 'gisthub.openGist',
           title: L10n.t('openGist'),
-          arguments: [element.id, filename, element.providerConfig?.id],
+          arguments: [element.id, filename, element.providerId],
         },
+        providerId: element.providerId,
+        resourceUri: fileUri,
         contextValue: 'gistItem',
       };
     });

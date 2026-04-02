@@ -59,7 +59,7 @@ export async function renameGist(
 }
 
 export async function deleteFileCommand(
-  { id, label }: GistTreeItem,
+  { id, label, resourceUri }: GistTreeItem,
   context: vscode.ExtensionContext,
 ): Promise<void> {
   if (!id) {
@@ -78,8 +78,12 @@ export async function deleteFileCommand(
     return;
   }
 
+  if (!resourceUri) {
+    throw new Error('');
+  }
+
   try {
-    await service?.deleteGistFile(id, label as string);
+    vscode.workspace.fs.delete(resourceUri);
     vscode.window.showInformationMessage(L10n.t('fileDeleted'));
   } catch (error) {
     vscode.window.showErrorMessage(L10n.t('errorDeletingFile'));
@@ -148,7 +152,7 @@ export async function createFileCommand(
 }
 
 export async function deleteGistCommand(
-  { id, label }: GistTreeItem,
+  { id, label, providerId, resourceUri }: GistTreeItem,
   context: vscode.ExtensionContext,
 ): Promise<void> {
   if (!id) {
@@ -168,8 +172,12 @@ export async function deleteGistCommand(
     return;
   }
 
+  if (!resourceUri) {
+    throw new Error('');
+  }
+
   try {
-    await service?.deleteGist(id);
+    vscode.workspace.fs.delete(resourceUri, { recursive: false });
     vscode.window.showInformationMessage(L10n.t('gistDeleted'));
   } catch (error) {
     vscode.window.showErrorMessage(L10n.t('errorDeletingGist'));
