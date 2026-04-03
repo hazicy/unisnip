@@ -92,20 +92,24 @@ export class GistFileSystemProvider implements vscode.FileSystemProvider {
     const provider = this.manager.getService(providerId);
     const contentStr = new TextDecoder().decode(content);
 
-    if (!gistId || options.create) {
-      // 创建新 Gist（当 gistId 不存在时或明确指定创建时）
-      await provider?.createGist({
+    if (!provider) {
+      throw new Error('');
+    }
+
+    if (options.create && !options.overwrite) {
+      // 创建新 Gist
+      await provider.createGist({
         description: vscode.l10n.t('newGist'),
         public: false,
-        files: {
-          [filename]: {
-            content: contentStr,
-          },
-        },
+        files: { [filename]: { content: contentStr } },
       });
-    } else if (options.overwrite || gistId) {
+      return;
+    }
+
+    if (options.create && options.overwrite) {
       // 更新已存在的 Gist 文件
-      await provider?.updateGistContent(gistId, filename, contentStr);
+      await provider.updateGistContent(gistId, filename, contentStr);
+      return;
     }
 
     this.notifyFileChanged(uri, vscode.FileChangeType.Changed);
