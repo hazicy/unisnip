@@ -27,7 +27,7 @@ const PROVIDER_ICONS: Record<GistProviderEnum, string> = {
 };
 
 function getProviderIcon(config: ProviderConfig): string {
-  return PROVIDER_ICONS[config.type] ?? '$(plug)';
+  return PROVIDER_ICONS[config.provider as GistProviderEnum] ?? '$(plug)';
 }
 
 export async function openProviderManager(
@@ -41,7 +41,7 @@ export async function openProviderManager(
     return;
   }
 
-  await handleManageProviders(configs, context);
+  await handleManageProviders(configs, context, gistManager);
 }
 
 async function handleAddProvider(
@@ -70,6 +70,7 @@ interface ProviderQuickPickItem extends vscode.QuickPickItem {
 async function handleManageProviders(
   configs: ProviderConfig[],
   context: vscode.ExtensionContext,
+  gistManager: GistServiceManager,
 ): Promise<void> {
   // 第一级：选择 provider
   const providerItems = [
@@ -122,12 +123,13 @@ async function handleManageProviders(
     return;
   }
 
-  await executeProviderAction(selectedAction, context);
+  await executeProviderAction(selectedAction, context, gistManager);
 }
 
 async function executeProviderAction(
   item: ProviderQuickPickItem,
   context: vscode.ExtensionContext,
+  gistManager: GistServiceManager,
 ): Promise<void> {
   switch (item.action) {
     case 'add':
@@ -140,7 +142,7 @@ async function executeProviderAction(
       break;
     case 'delete':
       if (item.providerId) {
-        await deleteProvider(item.providerId, context);
+        await deleteProvider(item.providerId, context, gistManager);
       }
       break;
   }
@@ -214,7 +216,8 @@ async function editProvider(
 
 async function deleteProvider(
   providerId: string,
-  context: vscode.ExtensionContext,
+  _context: vscode.ExtensionContext,
+  gistManager: GistServiceManager,
 ): Promise<void> {
   const confirm = await vscode.window.showWarningMessage(
     vscode.l10n.t('confirmDelete', providerId),
@@ -226,8 +229,7 @@ async function deleteProvider(
     return;
   }
 
-  const storageKey = `gist.provider.${providerId}`;
-  await context.globalState.update(storageKey, undefined);
+  gistManager.removeService(providerId);
 
   vscode.window.showInformationMessage(
     vscode.l10n.t('providerDeleted', providerId),

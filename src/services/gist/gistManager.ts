@@ -68,4 +68,10 @@ export class GistServiceManager {
   getConfig() {
     return [...this.configs];
   }
+
+  removeService(id: string) {
+    this.services.delete(id);
+    this.configs = this.configs.filter((c) => c.id !== id);
+    saveService(this.context, this.configs);
+  }
 }
