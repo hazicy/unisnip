@@ -62,6 +62,10 @@
       {
         "command": "gisthub.deleteGistFile",
         "title": "%gisthub.deleteGistFile.title%"
+      },
+      {
+        "command": "gisthub.openInExternal",
+        "title": "%gisthub.openInExternal%"
       }
     ],
     "menus": {
@@ -83,14 +87,24 @@
           "group": "navigation"
         },
         {
-          "command": "gisthub.deleteGist",
-          "when": "view == gistView && viewItem == gistFolder",
-          "group": "navigation"
-        },
-        {
           "command": "gisthub.createFile",
           "when": "view == gistView && viewItem == gistFolder",
-          "group": "navigation"
+          "group": "navigation1"
+        },
+        {
+          "command": "gisthub.openInExternal",
+          "when": "view == gistView && viewItem == gistFolder",
+          "group": "navigation2"
+        },
+        {
+          "command": "gisthub.renameGist",
+          "when": "view == gistView && viewItem == gistFolder",
+          "group": "navigation3"
+        },
+        {
+          "command": "gisthub.deleteGist",
+          "when": "view == gistView && viewItem == gistFolder",
+          "group": "navigation3"
         }
       ],
       "view/title": [

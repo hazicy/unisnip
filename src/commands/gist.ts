@@ -145,22 +145,13 @@ export async function createGistCommand(
       return;
     }
 
-    const filename = await vscode.window.showInputBox({
-      prompt: vscode.l10n.t('enterFileName'),
-      placeHolder: vscode.l10n.t('fileNamePlaceholder'),
-    });
-
-    if (!filename) {
-      return;
-    }
-
     const service = manager.getService(providerId);
     await service?.createGist({
       description,
       public: false,
       files: {
-        [filename]: {
-          content: '',
+        'README.md': {
+          content: 'Hello World',
         },
       },
     });
@@ -173,7 +164,7 @@ export async function createGistCommand(
 }
 
 export async function createFileCommand(
-  { id }: GistTreeItem,
+  { id, providerId }: GistTreeItem,
   context: vscode.ExtensionContext,
   refreshCallback?: () => void,
 ): Promise<void> {
@@ -182,7 +173,11 @@ export async function createFileCommand(
   }
 
   const manager = GistServiceManager.getInstance(context);
-  const service = manager.getService(id);
+  const service = manager.getService(providerId);
+
+  if (!service) {
+    throw new Error('找不到这个服务');
+  }
 
   const filename = await vscode.window.showInputBox({
     prompt: vscode.l10n.t('enterFileName'),
@@ -194,10 +189,10 @@ export async function createFileCommand(
   }
 
   try {
-    await service?.updateGist(id, {
+    await service.updateGist(id, {
       files: {
         [filename]: {
-          content: '',
+          content: '/n',
         },
       },
     });
@@ -243,3 +238,5 @@ export async function deleteGistCommand(
     vscode.window.showErrorMessage(vscode.l10n.t('errorDeletingGist'));
   }
 }
+
+export async function openInExternal(context: vscode.ExtensionContext) {}

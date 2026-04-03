@@ -7,6 +7,7 @@ import {
   deleteFileCommand,
   deleteGistCommand,
   openGist,
+  openInExternal,
   renameGist,
 } from './gist';
 import { openProviderManager } from './provider';
@@ -37,9 +38,11 @@ export function registerAllCommands(
       'gisthub.createFile',
       (item: GistTreeItem) => createFileCommand(item, context, refreshCallback),
     ),
-    vscode.commands.registerCommand(
-      'gisthub.createGist',
-      (item: any) => createGistCommand(context, refreshCallback, item),
+    vscode.commands.registerCommand('gisthub.createGist', (item: any) =>
+      createGistCommand(context, refreshCallback, item),
+    ),
+    vscode.commands.registerCommand('gisthub.openInExternal', (item: any) =>
+      openInExternal(context),
     ),
     // Provider management commands
     vscode.commands.registerCommand('gisthub.manageProviders', () =>

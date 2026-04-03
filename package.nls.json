@@ -10,5 +10,6 @@
   "gisthub.createFile.title": "Create File",
   "gisthub.createGist.title": "Create Gist",
   "gisthub.deleteGistFile.title": "Delete File",
-  "viewsWelcome.noProviders": "No providers available"
+  "viewsWelcome.noProviders": "No providers available",
+  "gisthub.openInExternal": "open in"
 }

@@ -5,10 +5,11 @@
   "gisthub.refresh.title": "刷新",
   "gisthub.refreshProviders.title": "刷新提供者",
   "gisthub.manageProviders.title": "管理提供者",
-  "gisthub.renameGist.title": "重命名 Gist",
-  "gisthub.deleteGist.title": "删除 Gist",
-  "gisthub.createFile.title": "创建文件",
+  "gisthub.renameGist.title": "重命名...",
+  "gisthub.deleteGist.title": "删除",
+  "gisthub.createFile.title": "新建文件...",
   "gisthub.createGist.title": "创建 Gist",
-  "gisthub.deleteGistFile.title": "删除文件",
-  "viewsWelcome.noProviders": "暂无可用的提供者"
+  "gisthub.deleteGistFile.title": "删除",
+  "viewsWelcome.noProviders": "暂无可用的提供者",
+  "gisthub.openInExternal": "在浏览器打开"
 }
