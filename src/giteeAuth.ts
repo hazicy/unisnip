@@ -38,14 +38,13 @@ export class GiteeAuthenticationProvider
   async createSession(
     scopes: readonly string[],
   ): Promise<vscode.AuthenticationSession> {
-    const clientId = 'client_id';
-    const clientSecret = '你的 client_secret';
+    const clientId =
+      'ad1a15f73956895e8befe1e66caec4cb6493e750af62647dc404ac97369a27da';
+    const clientSecret = '';
 
     const redirectUri = `${vscode.env.uriScheme}://Hazi.gisthub`;
 
-    const authUri = `https://gitee.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
-      redirectUri,
-    )}&response_type=code&scope=${encodeURIComponent(scopes.join(' '))}`;
+    const authUri = `https://gitee.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`;
 
     await vscode.env.openExternal(vscode.Uri.parse(authUri));
     const code = await this.waitForCode();

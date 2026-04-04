@@ -192,7 +192,7 @@ export async function createFileCommand(
     await service.updateGist(id, {
       files: {
         [filename]: {
-          content: '/n',
+          content: '',
         },
       },
     });

@@ -3,11 +3,23 @@ import { registerAllCommands } from './commands';
 import { GistFileSystemProvider } from './gistFileSystem';
 import { GistServiceManager } from './services/gist/gistManager';
 import { GistTreeProvider } from './views/tree/gistTreeData';
+import { GiteeAuthenticationProvider } from './giteeAuth';
 
 export const SCHEMA = 'gisthub';
 
 export async function activate(context: vscode.ExtensionContext) {
-  console.log('GistHub extension activated');
+  const giteeAuthProvider = new GiteeAuthenticationProvider(context);
+
+  context.subscriptions.push(
+    vscode.authentication.registerAuthenticationProvider(
+      'gitee',
+      'Gitee',
+      giteeAuthProvider,
+      {
+        supportsMultipleAccounts: false,
+      },
+    ),
+  );
 
   // 初始化 adapter manager
   const gistManager = GistServiceManager.getInstance(context);

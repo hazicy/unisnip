@@ -1,4 +1,5 @@
 import { Octokit } from '@octokit/rest';
+import * as vscode from 'vscode';
 import {
   GistProvider,
   Gist,
@@ -7,10 +8,19 @@ import {
   GistProviderEnum,
 } from './types';
 
+function getGitHubApiProxy(): string | null {
+  const customUrl = vscode.workspace
+    .getConfiguration('gisthub')
+    .get<string>('githubApiProxy', '');
+  return customUrl || null;
+}
+
 export class GitHubProvider implements GistProvider {
   private octokit: Octokit;
 
   constructor(token?: string) {
+    const proxyUrl = getGitHubApiProxy();
+
     this.octokit = new Octokit({
       auth: token,
     });
