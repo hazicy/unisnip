@@ -22,16 +22,16 @@ export async function openGist(
 }
 
 export async function renameGist(
-  { id, label }: GistTreeItem,
+  { id, label, providerId }: GistTreeItem,
   context: vscode.ExtensionContext,
   refreshCallback?: () => void,
 ): Promise<void> {
   if (!id) {
-    throw vscode.FileSystemError.FileExists();
+    return;
   }
 
   const manager = GistServiceManager.getInstance(context);
-  const service = manager.getService(id);
+  const service = manager.getService(providerId);
   const currentName = typeof label === 'string' ? label : label?.label || '';
 
   const newName = await vscode.window.showInputBox({
@@ -61,16 +61,16 @@ export async function renameGist(
 }
 
 export async function deleteFileCommand(
-  { id, label, resourceUri }: GistTreeItem,
+  { id, providerId, resourceUri }: GistTreeItem,
   context: vscode.ExtensionContext,
   refreshCallback?: () => void,
 ): Promise<void> {
-  if (!id) {
-    throw vscode.FileSystemError.FileExists();
+  if (!id || !providerId) {
+    return;
   }
 
   const manager = GistServiceManager.getInstance(context);
-  const service = manager.getService(id);
+  const service = manager.getService(providerId);
   const confirm = await vscode.window.showWarningMessage(
     vscode.l10n.t('confirmDelete'),
     { modal: true },
@@ -210,12 +210,12 @@ export async function deleteGistCommand(
   context: vscode.ExtensionContext,
   refreshCallback?: () => void,
 ): Promise<void> {
-  if (!id) {
-    throw vscode.FileSystemError.FileExists();
+  if (!id || !providerId) {
+    return;
   }
 
   const manager = GistServiceManager.getInstance(context);
-  const service = manager.getService(id);
+  const service = manager.getService(providerId);
   const gistName = typeof label === 'string' ? label : label?.label || '';
   const confirm = await vscode.window.showWarningMessage(
     vscode.l10n.t('confirmDeleteGist', gistName),

@@ -75,15 +75,11 @@ export class GistTreeProvider implements vscode.TreeDataProvider<GistTreeItem> {
   }
 
   private async getFileItems(element: GistTreeItem): Promise<GistTreeItem[]> {
-    if (!element.providerId) {
-      throw new Error('');
+    if (!element.providerId || !element.id) {
+      return [];
     }
 
     const service = this.gistManager.getService(element.providerId);
-
-    if (!element.id) {
-      throw vscode.FileSystemError.FileExists();
-    }
 
     const gist = await service?.getGist(element.id);
 
