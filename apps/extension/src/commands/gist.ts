@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { SCHEMA } from '../extension';
 import type { GistTreeItem } from '../views/tree/gistTreeData';
 import { GistServiceManager } from '../services/gist/gistManager';
-import { GistProviderEnum } from '@gisthub/core';
+import { GistProviderEnum, type Gist } from '@gisthub/core';
 
 export async function openGist(
   id: string,
@@ -391,7 +391,7 @@ export async function uploadFileCommand(
       }
 
       const selectedGist = await vscode.window.showQuickPick(
-        gists.map((gist: any) => ({
+        gists.map((gist: Gist) => ({
           label: gist.description || vscode.l10n.t('unnamedGist'),
           description: gist.id,
           gist,

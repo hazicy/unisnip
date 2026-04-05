@@ -175,14 +175,7 @@ export async function addProvider(
     return;
   }
 
-  const username = await vscode.window.showInputBox({
-    prompt: vscode.l10n.t('enterGistName'),
-    placeHolder: 'username',
-  });
-
-  if (username === undefined) {
-    return;
-  }
+  await createProvider(type, token, gistManager.context);
 
   vscode.window.showInformationMessage(vscode.l10n.t('gistUpdated'));
 }

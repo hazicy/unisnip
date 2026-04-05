@@ -39,7 +39,7 @@ export function registerAllCommands(
       'gisthub.createFile',
       (item: GistTreeItem) => createFileCommand(item, context, refreshCallback),
     ),
-    vscode.commands.registerCommand('gisthub.createGist', (item: any) =>
+    vscode.commands.registerCommand('gisthub.createGist', (item?: GistTreeItem) =>
       createGistCommand(context, refreshCallback, item),
     ),
     vscode.commands.registerCommand('gisthub.uploadFile', () =>
