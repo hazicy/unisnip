@@ -8,7 +8,7 @@
   },
   "description": "%description%",
   "repository": {
-    "url": ""
+    "url": "https://github.com/hazicy/gisthub"
   },
   "version": "0.0.1",
   "engines": {
