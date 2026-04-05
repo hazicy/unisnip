@@ -9,6 +9,7 @@
   "gisthub.deleteGist.title": "Delete",
   "gisthub.createFile.title": "New File...",
   "gisthub.createGist.title": "Create Gist",
+  "gisthub.uploadFile.title": "Upload File",
   "gisthub.deleteGistFile.title": "Delete",
   "viewsWelcome.noProviders": "No providers available",
   "gisthub.openInExternal": "Open in Browser"

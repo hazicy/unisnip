@@ -27,5 +27,14 @@
   "errorCreatingFile": "Error creating file",
   "confirmDeleteGist": "Are you sure you want to delete this Gist?",
   "gistDeleted": "Gist deleted",
-  "errorDeletingGist": "Error deleting Gist"
+  "errorDeletingGist": "Error deleting Gist",
+  "uploadFile": "Upload File",
+  "selectFileToUpload": "Select a file to upload",
+  "fileTooLarge": "File is too large",
+  "fileTooLargeMessage": "File size exceeds the limit of {maxSize}MB for {provider}",
+  "uploadingFile": "Uploading file...",
+  "fileUploaded": "File uploaded successfully",
+  "errorUploadingFile": "Error uploading file",
+  "createGistForFile": "Create a new Gist for this file",
+  "uploadToExistingGist": "Upload to existing Gist"
 }

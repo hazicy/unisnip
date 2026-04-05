@@ -9,6 +9,7 @@
   "gisthub.deleteGist.title": "删除",
   "gisthub.createFile.title": "新建文件...",
   "gisthub.createGist.title": "创建 Gist",
+  "gisthub.uploadFile.title": "上传文件",
   "gisthub.deleteGistFile.title": "删除",
   "viewsWelcome.noProviders": "暂无可用的提供者",
   "gisthub.openInExternal": "在浏览器打开"

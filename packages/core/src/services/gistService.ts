@@ -4,6 +4,8 @@ import type {
   CreateGistParams,
   UpdateGistParams,
   GistProviderEnum,
+  FileSizeLimit,
+  FileSizeValidation,
 } from '../types';
 
 /**
@@ -82,5 +84,31 @@ export class GistService {
    */
   getProviderName(): GistProviderEnum {
     return this.provider.getProviderName();
+  }
+
+  /**
+   * 获取文件大小限制
+   */
+  getFileSizeLimit(): FileSizeLimit {
+    return this.provider.getFileSizeLimit();
+  }
+
+  /**
+   * 验证文件大小
+   */
+  validateFileSize(content: string, filename?: string): FileSizeValidation {
+    return this.provider.validateFileSize(content, filename);
+  }
+
+  /**
+   * 上传文件到 Gist
+   */
+  async uploadFile(
+    id: string,
+    filename: string,
+    content: string,
+    onProgress?: (progress: number) => void,
+  ): Promise<Gist> {
+    return this.provider.uploadFile(id, filename, content, onProgress);
   }
 }

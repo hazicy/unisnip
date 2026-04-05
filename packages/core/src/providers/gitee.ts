@@ -5,6 +5,9 @@ import {
   CreateGistParams,
   UpdateGistParams,
   GistProviderEnum,
+  FileSizeLimit,
+  FileSizeValidation,
+  FILE_SIZE_LIMITS,
 } from '../types';
 
 const giteeBaseURL = 'https://gitee.com/api/v5';
@@ -46,6 +49,7 @@ export interface GiteeOwner {
  */
 export class GiteeProvider implements GistProvider {
   private axiosInstance;
+  private fileSizeLimit: FileSizeLimit;
 
   constructor(token?: string) {
     this.axiosInstance = axios.create({
@@ -54,10 +58,44 @@ export class GiteeProvider implements GistProvider {
         access_token: token,
       },
     });
+    this.fileSizeLimit = FILE_SIZE_LIMITS[GistProviderEnum.Gitee];
   }
 
   getProviderName(): GistProviderEnum {
     return GistProviderEnum.Gitee;
+  }
+
+  getFileSizeLimit(): FileSizeLimit {
+    return this.fileSizeLimit;
+  }
+
+  validateFileSize(content: string, filename?: string): FileSizeValidation {
+    const byteSize = new Blob([content]).size;
+
+    if (byteSize > this.fileSizeLimit.maxFileSize) {
+      const maxMB = (this.fileSizeLimit.maxFileSize / (1024 * 1024)).toFixed(0);
+      return {
+        valid: false,
+        error: `文件大小超出 Gitee 限制 (最大 ${maxMB}MB)`,
+      };
+    }
+
+    return { valid: true };
+  }
+
+  async uploadFile(
+    id: string,
+    filename: string,
+    content: string,
+    onProgress?: (progress: number) => void,
+  ): Promise<Gist> {
+    const validation = this.validateFileSize(content, filename);
+    if (!validation.valid) {
+      throw new Error(validation.error);
+    }
+
+    onProgress?.(100);
+    return this.updateGistContent(id, filename, content);
   }
 
   async getGists(): Promise<Gist[]> {

@@ -9,6 +9,7 @@ import {
   openGist,
   openInExternal,
   renameGist,
+  uploadFileCommand,
 } from './gist';
 import { openProviderManager } from './provider';
 
@@ -40,6 +41,9 @@ export function registerAllCommands(
     ),
     vscode.commands.registerCommand('gisthub.createGist', (item: any) =>
       createGistCommand(context, refreshCallback, item),
+    ),
+    vscode.commands.registerCommand('gisthub.uploadFile', () =>
+      uploadFileCommand(context, refreshCallback),
     ),
     vscode.commands.registerCommand('gisthub.openInExternal', (item: any) =>
       openInExternal(context),

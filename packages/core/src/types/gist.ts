@@ -68,6 +68,38 @@ export interface ProviderConfig {
 }
 
 /**
+ * Gist 文件大小限制配置
+ */
+export interface FileSizeLimit {
+  /** 最大单个文件大小（字节） */
+  maxFileSize: number;
+  /** 最大单次请求大小（字节） */
+  maxRequestSize: number;
+}
+
+/**
+ * 文件大小限制常量
+ */
+export const FILE_SIZE_LIMITS: Record<GistProviderEnum, FileSizeLimit> = {
+  [GistProviderEnum.Gitee]: {
+    maxFileSize: 4 * 1024 * 1024, // 4MB
+    maxRequestSize: 4 * 1024 * 1024, // 4MB
+  },
+  [GistProviderEnum.GitHub]: {
+    maxFileSize: 100 * 1024 * 1024, // 100MB
+    maxRequestSize: 100 * 1024 * 1024, // 100MB (使用 gist api)
+  },
+};
+
+/**
+ * 文件大小验证结果
+ */
+export interface FileSizeValidation {
+  valid: boolean;
+  error?: string;
+}
+
+/**
  * Gist 服务通用接口 - 适配器模式的目标接口
  */
 export interface GistProvider {
@@ -124,4 +156,30 @@ export interface GistProvider {
    * 获取服务提供商名称
    */
   getProviderName(): GistProviderEnum;
+
+  /**
+   * 获取文件大小限制配置
+   */
+  getFileSizeLimit(): FileSizeLimit;
+
+  /**
+   * 验证文件大小是否允许上传
+   * @param content 文件内容
+   * @param filename 文件名（可选）
+   */
+  validateFileSize(content: string, filename?: string): FileSizeValidation;
+
+  /**
+   * 上传文件到 Gist（支持大文件）
+   * @param id Gist ID
+   * @param filename 文件名
+   * @param content 文件内容
+   * @param onProgress 进度回调
+   */
+  uploadFile(
+    id: string,
+    filename: string,
+    content: string,
+    onProgress?: (progress: number) => void,
+  ): Promise<Gist>;
 }

@@ -60,6 +60,10 @@
         "icon": "$(gist-new)"
       },
       {
+        "command": "gisthub.uploadFile",
+        "title": "%gisthub.uploadFile.title%"
+      },
+      {
         "command": "gisthub.deleteGistFile",
         "title": "%gisthub.deleteGistFile.title%"
       },
@@ -72,6 +76,10 @@
       "commandPalette": [
         {
           "command": "gisthub.createGist",
+          "when": "true"
+        },
+        {
+          "command": "gisthub.uploadFile",
           "when": "true"
         }
       ],

@@ -27,5 +27,14 @@
   "errorCreatingFile": "创建文件时出错",
   "confirmDeleteGist": "确认删除该 Gist？",
   "gistDeleted": "Gist 已删除",
-  "errorDeletingGist": "删除 Gist 时出错"
+  "errorDeletingGist": "删除 Gist 时出错",
+  "uploadFile": "上传文件",
+  "selectFileToUpload": "选择要上传的文件",
+  "fileTooLarge": "文件过大",
+  "fileTooLargeMessage": "文件大小超出 {provider} 的限制 ({maxSize}MB)",
+  "uploadingFile": "正在上传文件...",
+  "fileUploaded": "文件上传成功",
+  "errorUploadingFile": "上传文件时出错",
+  "createGistForFile": "为该文件创建新 Gist",
+  "uploadToExistingGist": "上传到现有 Gist"
 }

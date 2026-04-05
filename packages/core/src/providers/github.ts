@@ -5,19 +5,57 @@ import {
   CreateGistParams,
   UpdateGistParams,
   GistProviderEnum,
+  FileSizeLimit,
+  FileSizeValidation,
+  FILE_SIZE_LIMITS,
 } from '../types';
 
 export class GitHubProvider implements GistProvider {
   private octokit: Octokit;
+  private fileSizeLimit: FileSizeLimit;
 
   constructor(token?: string, proxyUrl?: string) {
     this.octokit = new Octokit({
       auth: token,
     });
+    this.fileSizeLimit = FILE_SIZE_LIMITS[GistProviderEnum.GitHub];
   }
 
   getProviderName(): GistProviderEnum {
     return GistProviderEnum.GitHub;
+  }
+
+  getFileSizeLimit(): FileSizeLimit {
+    return this.fileSizeLimit;
+  }
+
+  validateFileSize(content: string, filename?: string): FileSizeValidation {
+    const byteSize = new Blob([content]).size;
+
+    if (byteSize > this.fileSizeLimit.maxFileSize) {
+      const maxMB = (this.fileSizeLimit.maxFileSize / (1024 * 1024)).toFixed(0);
+      return {
+        valid: false,
+        error: `文件大小超出 GitHub 限制 (最大 ${maxMB}MB)`,
+      };
+    }
+
+    return { valid: true };
+  }
+
+  async uploadFile(
+    id: string,
+    filename: string,
+    content: string,
+    onProgress?: (progress: number) => void,
+  ): Promise<Gist> {
+    const validation = this.validateFileSize(content, filename);
+    if (!validation.valid) {
+      throw new Error(validation.error);
+    }
+
+    onProgress?.(100);
+    return this.updateGistContent(id, filename, content);
   }
 
   async getGists(): Promise<Gist[]> {
