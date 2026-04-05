@@ -47,9 +47,13 @@ export function ProseMirrorEditor({
       new InputRule(/\*\*([^*]+)\*\*$/, (state, _match, start, end) => {
         const tr = state.tr;
         const text = state.doc.textBetween(start, end);
-        tr.replaceWith(start - 2, end, mySchema.nodes.code_markup.create(null, mySchema.text(text)));
+        tr.replaceWith(
+          start - 2,
+          end,
+          mySchema.nodes.code_markup.create(null, mySchema.text(text)),
+        );
         return tr;
-      })
+      }),
     );
 
     // 斜体 *text*
@@ -57,9 +61,13 @@ export function ProseMirrorEditor({
       new InputRule(/\*([^*]+)\*$/, (state, _match, start, end) => {
         const tr = state.tr;
         const text = state.doc.textBetween(start, end);
-        tr.replaceWith(start - 1, end, mySchema.nodes.emphasis.create(null, mySchema.text(text)));
+        tr.replaceWith(
+          start - 1,
+          end,
+          mySchema.nodes.emphasis.create(null, mySchema.text(text)),
+        );
         return tr;
-      })
+      }),
     );
 
     // 代码 `text`
@@ -67,9 +75,13 @@ export function ProseMirrorEditor({
       new InputRule(/`([^`]+)`$/, (state, _match, start, end) => {
         const tr = state.tr;
         const text = state.doc.textBetween(start, end);
-        tr.replaceWith(start - 1, end, mySchema.nodes.code.create(null, mySchema.text(text)));
+        tr.replaceWith(
+          start - 1,
+          end,
+          mySchema.nodes.code.create(null, mySchema.text(text)),
+        );
         return tr;
-      })
+      }),
     );
 
     return inputRules({ rules });
@@ -83,8 +95,8 @@ export function ProseMirrorEditor({
         ? DOMParser.fromSchema(mySchema).parse(
             new window.DOMParser().parseFromString(
               `<div>${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`,
-              'text/html'
-            ).body.firstChild as Element
+              'text/html',
+            ).body.firstChild as Element,
           )
         : mySchema.node('doc', null, [mySchema.node('paragraph')]),
       schema: mySchema,
@@ -135,8 +147,8 @@ export function ProseMirrorEditor({
         doc: DOMParser.fromSchema(mySchema).parse(
           new window.DOMParser().parseFromString(
             `<div>${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`,
-            'text/html'
-          ).body.firstChild as Element
+            'text/html',
+          ).body.firstChild as Element,
         ),
         schema: mySchema,
         plugins: [
@@ -182,19 +194,39 @@ export function ProseMirrorEditor({
     <div className="border rounded-lg overflow-hidden">
       {!readOnly && (
         <div className="flex gap-1 p-2 border-b bg-default-50">
-          <Button size="sm" variant="tertiary" onPress={() => execCommand(toggleMark(mySchema.marks.strong))}>
+          <Button
+            size="sm"
+            variant="tertiary"
+            onClick={() => execCommand(toggleMark(mySchema.marks.strong))}
+          >
             B
           </Button>
-          <Button size="sm" variant="tertiary" onPress={() => execCommand(toggleMark(mySchema.marks.em))}>
+          <Button
+            size="sm"
+            variant="tertiary"
+            onClick={() => execCommand(toggleMark(mySchema.marks.em))}
+          >
             I
           </Button>
-          <Button size="sm" variant="tertiary" onPress={() => execCommand(toggleMark(mySchema.marks.code))}>
+          <Button
+            size="sm"
+            variant="tertiary"
+            onClick={() => execCommand(toggleMark(mySchema.marks.code))}
+          >
             {'</>'}
           </Button>
-          <Button size="sm" variant="tertiary" onPress={() => execCommand(undo)}>
+          <Button
+            size="sm"
+            variant="tertiary"
+            onClick={() => execCommand(undo)}
+          >
             撤销
           </Button>
-          <Button size="sm" variant="tertiary" onPress={() => execCommand(redo)}>
+          <Button
+            size="sm"
+            variant="tertiary"
+            onClick={() => execCommand(redo)}
+          >
             重做
           </Button>
         </div>

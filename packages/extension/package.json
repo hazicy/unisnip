@@ -1,0 +1,192 @@
+{
+  "name": "gisthub",
+  "displayName": "%displayName%",
+  "icon": "resources/logo.png",
+  "publisher": "Hazi",
+  "author": {
+    "name": "hazi"
+  },
+  "description": "%description%",
+  "repository": {
+    "url": ""
+  },
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.110.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "l10n": "./l10n",
+  "activationEvents": [
+    "onStartupFinished",
+    "onFileSystem:gisthub"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "gisthub.openGist",
+        "title": "%gisthub.openGist.title%"
+      },
+      {
+        "command": "gisthub.refresh",
+        "title": "%gisthub.refresh.title%",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "gisthub.refreshProviders",
+        "title": "%gisthub.refreshProviders.title%"
+      },
+      {
+        "command": "gisthub.manageProviders",
+        "title": "%gisthub.manageProviders.title%"
+      },
+      {
+        "command": "gisthub.renameGist",
+        "title": "%gisthub.renameGist.title%"
+      },
+      {
+        "command": "gisthub.deleteGist",
+        "title": "%gisthub.deleteGist.title%"
+      },
+      {
+        "command": "gisthub.createFile",
+        "title": "%gisthub.createFile.title%"
+      },
+      {
+        "command": "gisthub.createGist",
+        "title": "%gisthub.createGist.title%",
+        "icon": "$(gist-new)"
+      },
+      {
+        "command": "gisthub.deleteGistFile",
+        "title": "%gisthub.deleteGistFile.title%"
+      },
+      {
+        "command": "gisthub.openInExternal",
+        "title": "%gisthub.openInExternal%"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "gisthub.createGist",
+          "when": "true"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "gisthub.renameGist",
+          "when": "view == gistView && viewItem == gistItem",
+          "group": "navigation"
+        },
+        {
+          "command": "gisthub.deleteGistFile",
+          "when": "view == gistView && viewItem == gistItem",
+          "group": "navigation"
+        },
+        {
+          "command": "gisthub.createFile",
+          "when": "view == gistView && viewItem == gistFolder",
+          "group": "navigation1"
+        },
+        {
+          "command": "gisthub.openInExternal",
+          "when": "view == gistView && viewItem == gistFolder",
+          "group": "navigation2"
+        },
+        {
+          "command": "gisthub.renameGist",
+          "when": "view == gistView && viewItem == gistFolder",
+          "group": "navigation3"
+        },
+        {
+          "command": "gisthub.deleteGist",
+          "when": "view == gistView && viewItem == gistFolder",
+          "group": "navigation3"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "gisthub.refresh",
+          "when": "view == gistView",
+          "group": "navigation"
+        },
+        {
+          "command": "gisthub.createGist",
+          "when": "view == gistView",
+          "group": "navigation"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "icon": "./resources/icon.svg",
+          "id": "gisthubContainer",
+          "title": "GistHub"
+        }
+      ]
+    },
+    "views": {
+      "gisthubContainer": [
+        {
+          "icon": "./resources/icon.svg",
+          "id": "gistView",
+          "name": "Gists"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "GistHub",
+      "properties": {
+        "gisthub.githubApiProxy": {
+          "type": "string",
+          "default": "",
+          "title": "GitHub API 代理",
+          "description": "GitHub API 代理地址，用于加速访问 GitHub API。"
+        }
+      }
+    },
+    "viewsWelcome": [
+      {
+        "view": "gistView",
+        "contents": "%viewsWelcome.noProviders%"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test",
+    "l10n:generate": "npx @vscode/l10n-dev export -p ./package.json -o ./l10n",
+    "l10n:xlf": "npx @vscode/l10n-dev xlf-gen -p ./package.json -o ./l10n"
+  },
+  "devDependencies": {
+    "@gisthub/core": "workspace:*",
+    "@octokit/types": "^16.0.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@types/vscode": "^1.110.0",
+    "@vscode/l10n-dev": "^0.0.35",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.39.2",
+    "ts-loader": "^9.5.4",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.52.0",
+    "webpack": "^5.104.1",
+    "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "@octokit/rest": "^20.1.2",
+    "axios": "^1.13.6"
+  }
+}

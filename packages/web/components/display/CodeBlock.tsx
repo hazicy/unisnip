@@ -23,7 +23,11 @@ export function CodeBlock({ content, language = 'plaintext' }: CodeBlockProps) {
     <div className="relative rounded-lg overflow-hidden my-4">
       <div className="flex justify-between items-center px-4 py-2 bg-default-100 border-b border-default-200">
         <span className="text-sm text-default-500 uppercase">{language}</span>
-        <Button size="sm" variant="tertiary" onPress={handleCopy}>
+        <Button
+          size="sm"
+          variant="tertiary"
+          onClick={handleCopy}
+        >
           {copied ? '已复制' : '复制'}
         </Button>
       </div>

@@ -1,11 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import {
-  Button,
-  Input,
-  Switch,
-} from '@heroui/react';
+import { Button, Input, Switch } from '@heroui/react';
 import { toast } from '@heroui/react';
 import { useGistStore } from '@/stores/useGistStore';
 import { gistApi } from '@/lib/api/gist';
@@ -40,7 +36,11 @@ export function CreateGistModal({ isOpen, onClose }: CreateGistModalProps) {
     setFiles(files.filter((_, i) => i !== index));
   };
 
-  const handleFileChange = (index: number, field: 'name' | 'content', value: string) => {
+  const handleFileChange = (
+    index: number,
+    field: 'name' | 'content',
+    value: string,
+  ) => {
     const newFiles = [...files];
     newFiles[index][field] = value;
     setFiles(newFiles);
@@ -90,7 +90,10 @@ export function CreateGistModal({ isOpen, onClose }: CreateGistModalProps) {
   };
 
   return (
-    <dialog ref={dialogRef} className="p-6 rounded-lg shadow-xl border w-full max-w-2xl">
+    <dialog
+      ref={dialogRef}
+      className="p-6 rounded-lg shadow-xl border w-full max-w-2xl"
+    >
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">创建新 Gist</h3>
         <div className="space-y-4">
@@ -101,30 +104,44 @@ export function CreateGistModal({ isOpen, onClose }: CreateGistModalProps) {
             onChange={(e) => setDescription(e.target.value)}
           />
 
-          <Switch isSelected={isPublic} onChange={() => setIsPublic(!isPublic)}>
+          <Switch
+            isSelected={isPublic}
+            onChange={() => setIsPublic(!isPublic)}
+          >
             公开 Gist
           </Switch>
 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <p className="text-sm font-medium">文件</p>
-              <Button size="sm" variant="light" onPress={handleAddFile}>
+              <Button
+                size="sm"
+                variant="light"
+                onClick={handleAddFile}
+              >
                 添加文件
               </Button>
             </div>
 
             {files.map((file, index) => (
-              <div key={index} className="flex gap-2 items-start flex-wrap">
+              <div
+                key={index}
+                className="flex gap-2 items-start flex-wrap"
+              >
                 <Input
                   placeholder="文件名 (如: test.py)"
                   value={file.name}
-                  onChange={(e) => handleFileChange(index, 'name', e.target.value)}
+                  onChange={(e) =>
+                    handleFileChange(index, 'name', e.target.value)
+                  }
                   className="w-1/3 min-w-[200px]"
                 />
                 <Input
                   placeholder="文件内容"
                   value={file.content}
-                  onChange={(e) => handleFileChange(index, 'content', e.target.value)}
+                  onChange={(e) =>
+                    handleFileChange(index, 'content', e.target.value)
+                  }
                   className="flex-1 min-w-[200px]"
                 />
                 {files.length > 1 && (
@@ -132,7 +149,7 @@ export function CreateGistModal({ isOpen, onClose }: CreateGistModalProps) {
                     size="sm"
                     variant="light"
                     variant="danger"
-                    onPress={() => handleRemoveFile(index)}
+                    onClick={() => handleRemoveFile(index)}
                   >
                     删除
                   </Button>
@@ -142,10 +159,16 @@ export function CreateGistModal({ isOpen, onClose }: CreateGistModalProps) {
           </div>
         </div>
         <div className="flex justify-end gap-2">
-          <Button variant="tertiary" onPress={handleClose}>
+          <Button
+            variant="tertiary"
+            onClick={handleClose}
+          >
             取消
           </Button>
-          <Button variant="primary" onPress={handleCreate} >
+          <Button
+            variant="primary"
+            onClick={handleCreate}
+          >
             创建
           </Button>
         </div>

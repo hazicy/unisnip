@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
 import { GistList } from '@/components/gist/GistList';
 import { CreateGistModal } from '@/components/gist/CreateGistModal';
 import { useGistStore } from '@/stores/useGistStore';
 
 export default function GistsPage() {
-  const { isCreateModalOpen, setCreateModalOpen, currentProvider } = useGistStore();
+  const { isCreateModalOpen, setCreateModalOpen, currentProvider } =
+    useGistStore();
 
   return (
     <div className="container mx-auto p-6">

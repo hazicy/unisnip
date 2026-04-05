@@ -20,7 +20,11 @@ import { ProseMirrorEditor } from '@/components/editor/ProseMirrorEditor';
 import { MarkdownRenderer } from '@/components/display/MarkdownRenderer';
 import { JupyterViewer } from '@/components/display/JupyterViewer';
 import { CodeBlock } from '@/components/display/CodeBlock';
-import { isMarkdownFile, isJupyterFile, getLanguageFromFilename } from '@/lib/utils/fileType';
+import {
+  isMarkdownFile,
+  isJupyterFile,
+  getLanguageFromFilename,
+} from '@/lib/utils/fileType';
 
 export default function GistDetailPage() {
   const params = useParams();
@@ -28,8 +32,17 @@ export default function GistDetailPage() {
   const gistId = params.id as string;
   const deleteDialogRef = useRef<HTMLDialogElement>(null);
 
-  const { currentProvider, gists, updateGistInStore, removeGistFromStore } = useGistStore();
-  const { content, setContent, isDirty, setDirty, isPreviewMode, setPreviewMode, reset } = useEditorStore();
+  const { currentProvider, gists, updateGistInStore, removeGistFromStore } =
+    useGistStore();
+  const {
+    content,
+    setContent,
+    isDirty,
+    setDirty,
+    isPreviewMode,
+    setPreviewMode,
+    reset,
+  } = useEditorStore();
 
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string>('');
@@ -80,7 +93,11 @@ export default function GistDetailPage() {
     const loadContent = async () => {
       setIsLoading(true);
       try {
-        const content = await gistApi.getGistContent(currentProvider, gistId, selectedFile);
+        const content = await gistApi.getGistContent(
+          currentProvider,
+          gistId,
+          selectedFile,
+        );
         setFileContent(content);
         setContent(content);
         setDirty(false);
@@ -108,7 +125,7 @@ export default function GistDetailPage() {
         currentProvider,
         gistId,
         selectedFile,
-        content
+        content,
       );
       updateGistInStore(gistId, updatedGist);
       setDirty(false);
@@ -181,7 +198,12 @@ export default function GistDetailPage() {
       if (isPreviewMode) {
         return <MarkdownRenderer content={fileContent} />;
       }
-      return <ProseMirrorEditor content={fileContent} onChange={handleContentChange} />;
+      return (
+        <ProseMirrorEditor
+          content={fileContent}
+          onChange={handleContentChange}
+        />
+      );
     }
 
     if (selectedFile && isJupyterFile(selectedFile)) {
@@ -190,10 +212,20 @@ export default function GistDetailPage() {
 
     // 代码文件
     if (isPreviewMode && selectedFile) {
-      return <CodeBlock content={fileContent} language={getLanguageFromFilename(selectedFile)} />;
+      return (
+        <CodeBlock
+          content={fileContent}
+          language={getLanguageFromFilename(selectedFile)}
+        />
+      );
     }
 
-    return <ProseMirrorEditor content={fileContent} onChange={handleContentChange} />;
+    return (
+      <ProseMirrorEditor
+        content={fileContent}
+        onChange={handleContentChange}
+      />
+    );
   };
 
   if (!currentProvider) {
@@ -203,7 +235,10 @@ export default function GistDetailPage() {
           <Card.Content className="flex items-center justify-center py-12">
             <div className="text-center">
               <p className="text-lg mb-4">请先选择提供商</p>
-              <Button variant="primary" onPress={() => router.push('/providers')}>
+              <Button
+                variant="primary"
+                onClick={() => router.push('/providers')}
+              >
                 前往提供商管理
               </Button>
             </div>
@@ -218,7 +253,10 @@ export default function GistDetailPage() {
       {/* 头部 */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-center gap-4">
-          <Button variant="tertiary" onPress={handleBack}>
+          <Button
+            variant="tertiary"
+            onClick={handleBack}
+          >
             返回
           </Button>
           <div className="flex flex-col">
@@ -231,25 +269,26 @@ export default function GistDetailPage() {
               className="w-64"
             />
           </div>
-          <Chip variant="tertiary" color={gist?.public ? 'success' : 'default'}>
+          <Chip
+            variant="tertiary"
+            color={gist?.public ? 'success' : 'default'}
+          >
             {gist?.public ? '公开' : '私有'}
           </Chip>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {isDirty && (
-            <Chip color="warning">
-              未保存
-            </Chip>
-          )}
+          {isDirty && <Chip color="warning">未保存</Chip>}
           <Button
             variant="primary"
-            onPress={handleSave}
+            onClick={handleSave}
             isDisabled={!isDirty}
-            
           >
             保存
           </Button>
-          <Button variant="danger" onClick={() => deleteDialogRef.current?.showModal()}>
+          <Button
+            variant="danger"
+            onClick={() => deleteDialogRef.current?.showModal()}
+          >
             删除
           </Button>
         </div>
@@ -270,9 +309,7 @@ export default function GistDetailPage() {
               }}
             >
               {files.map((file) => (
-                <ListBoxItem key={file.filename} >
-                  {file.filename}
-                </ListBoxItem>
+                <ListBoxItem key={file.filename}>{file.filename}</ListBoxItem>
               ))}
             </ListBox>
           </Card.Content>
@@ -282,33 +319,43 @@ export default function GistDetailPage() {
         <Card className="flex-1 overflow-hidden">
           <Card.Content className="h-full overflow-auto">
             {selectedFile && (
-              <Tabs selectedKey={isPreviewMode ? 'preview' : 'edit'} onSelectionChange={(key) => setPreviewMode(key === 'preview')}>
+              <Tabs
+                selectedKey={isPreviewMode ? 'preview' : 'edit'}
+                onSelectionChange={(key) => setPreviewMode(key === 'preview')}
+              >
                 <Tabs.List>
                   <Tabs.Tab key="edit">编辑</Tabs.Tab>
                   <Tabs.Tab key="preview">预览</Tabs.Tab>
                 </Tabs.List>
               </Tabs>
             )}
-            <div className="mt-4">
-              {renderContent()}
-            </div>
+            <div className="mt-4">{renderContent()}</div>
           </Card.Content>
         </Card>
       </div>
 
       {/* 删除确认对话框 */}
-      <dialog ref={deleteDialogRef} className="p-6 rounded-lg shadow-xl border">
+      <dialog
+        ref={deleteDialogRef}
+        className="p-6 rounded-lg shadow-xl border"
+      >
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">确认删除</h3>
           <p>确定要删除这个 Gist 吗？此操作不可恢复。</p>
           <div className="flex justify-end gap-2">
-            <Button variant="tertiary" onClick={() => deleteDialogRef.current?.close()}>
+            <Button
+              variant="tertiary"
+              onClick={() => deleteDialogRef.current?.close()}
+            >
               取消
             </Button>
-            <Button variant="danger" onClick={() => {
-              deleteDialogRef.current?.close();
-              handleDelete();
-            }}>
+            <Button
+              variant="danger"
+              onClick={() => {
+                deleteDialogRef.current?.close();
+                handleDelete();
+              }}
+            >
               删除
             </Button>
           </div>

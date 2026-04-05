@@ -1,19 +1,14 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import {
-  Card,
-  Avatar,
-  Button,
-  Chip,
-  Input,
-} from '@heroui/react';
+import { Card, Avatar, Button, Chip, Input } from '@heroui/react';
 import { toast } from '@heroui/react';
 import { useGistStore } from '@/stores/useGistStore';
 import type { GistProvider, GistProviderType } from '@/types/gist';
 
 const PROVIDER_ICONS: Record<GistProviderType, string> = {
-  github: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
+  github:
+    'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
   gitee: 'https://gitee.com/assets/favicon.ico',
 };
 
@@ -23,8 +18,13 @@ const PROVIDER_NAMES: Record<GistProviderType, string> = {
 };
 
 export function ProviderList() {
-  const { providers, currentProvider, setCurrentProvider, addProvider, removeProvider } =
-    useGistStore();
+  const {
+    providers,
+    currentProvider,
+    setCurrentProvider,
+    addProvider,
+    removeProvider,
+  } = useGistStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [newProvider, setNewProvider] = useState({
@@ -68,7 +68,10 @@ export function ProviderList() {
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">提供商管理</h2>
-        <Button variant="primary" onPress={() => dialogRef.current?.showModal()}>
+        <Button
+          variant="primary"
+          onClick={() => dialogRef.current?.showModal()}
+        >
           添加提供商
         </Button>
       </div>
@@ -85,7 +88,10 @@ export function ProviderList() {
           </Card>
         ) : (
           providers.map((provider) => (
-            <Card key={provider.id} className="w-full">
+            <Card
+              key={provider.id}
+              className="w-full"
+            >
               <Card.Header className="justify-between">
                 <div className="flex gap-3">
                   <Avatar
@@ -95,11 +101,15 @@ export function ProviderList() {
                   />
                   <div className="flex flex-col">
                     <p className="text-md font-semibold">{provider.name}</p>
-                    <p className="text-sm text-default-500">{PROVIDER_NAMES[provider.type]}</p>
+                    <p className="text-sm text-default-500">
+                      {PROVIDER_NAMES[provider.type]}
+                    </p>
                   </div>
                 </div>
                 <Chip
-                  color={currentProvider?.id === provider.id ? 'success' : 'default'}
+                  color={
+                    currentProvider?.id === provider.id ? 'success' : 'default'
+                  }
                   variant="tertiary"
                   size="sm"
                 >
@@ -114,9 +124,15 @@ export function ProviderList() {
               <Card.Footer className="gap-2">
                 <Button
                   size="sm"
-                  variant={currentProvider?.id === provider.id ? 'flat' : 'solid'}
-                  color={currentProvider?.id === provider.id ? 'primary' : 'secondary'}
-                  onPress={() => handleSelectProvider(provider)}
+                  variant={
+                    currentProvider?.id === provider.id ? 'flat' : 'solid'
+                  }
+                  color={
+                    currentProvider?.id === provider.id
+                      ? 'primary'
+                      : 'secondary'
+                  }
+                  onClick={() => handleSelectProvider(provider)}
                 >
                   {currentProvider?.id === provider.id ? '已选中' : '选中'}
                 </Button>
@@ -124,7 +140,7 @@ export function ProviderList() {
                   size="sm"
                   variant="light"
                   variant="danger"
-                  onPress={() => handleRemoveProvider(provider.id)}
+                  onClick={() => handleRemoveProvider(provider.id)}
                 >
                   删除
                 </Button>
@@ -135,14 +151,22 @@ export function ProviderList() {
       </div>
 
       {/* 添加提供商对话框 */}
-      <dialog ref={dialogRef} className="p-6 rounded-lg shadow-xl border w-full max-w-md">
+      <dialog
+        ref={dialogRef}
+        className="p-6 rounded-lg shadow-xl border w-full max-w-md"
+      >
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">添加提供商</h3>
           <div className="space-y-4">
             <select
               className="w-full p-2 border rounded"
               value={newProvider.type}
-              onChange={(e) => setNewProvider({ ...newProvider, type: e.target.value as GistProviderType })}
+              onChange={(e) =>
+                setNewProvider({
+                  ...newProvider,
+                  type: e.target.value as GistProviderType,
+                })
+              }
             >
               <option value="github">GitHub</option>
               <option value="gitee">Gitee</option>
@@ -151,21 +175,31 @@ export function ProviderList() {
               label="名称"
               placeholder="输入提供商名称"
               value={newProvider.name}
-              onChange={(e) => setNewProvider({ ...newProvider, name: e.target.value })}
+              onChange={(e) =>
+                setNewProvider({ ...newProvider, name: e.target.value })
+              }
             />
             <Input
               label="Token"
               type="password"
               placeholder="输入 Access Token"
               value={newProvider.token}
-              onChange={(e) => setNewProvider({ ...newProvider, token: e.target.value })}
+              onChange={(e) =>
+                setNewProvider({ ...newProvider, token: e.target.value })
+              }
             />
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="tertiary" onClick={() => dialogRef.current?.close()}>
+            <Button
+              variant="tertiary"
+              onClick={() => dialogRef.current?.close()}
+            >
               取消
             </Button>
-            <Button variant="primary" onPress={handleAddProvider}>
+            <Button
+              variant="primary"
+              onClick={handleAddProvider}
+            >
               添加
             </Button>
           </div>

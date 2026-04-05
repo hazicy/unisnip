@@ -47,13 +47,19 @@ function CellOutputRenderer({ output }: { output: CellOutput }) {
     case 'display_data':
       if (output.data) {
         // 处理图像输出
-        const imageMimeTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/svg+xml'];
+        const imageMimeTypes = [
+          'image/png',
+          'image/jpeg',
+          'image/gif',
+          'image/svg+xml',
+        ];
         for (const mimeType of imageMimeTypes) {
           if (output.data[mimeType]) {
             const data = Array.isArray(output.data[mimeType])
               ? output.data[mimeType][0]
               : output.data[mimeType];
-            const isBase64 = typeof data === 'string' && data.startsWith('data:');
+            const isBase64 =
+              typeof data === 'string' && data.startsWith('data:');
             if (mimeType === 'image/svg+xml' || isBase64) {
               return (
                 <div
@@ -77,9 +83,7 @@ function CellOutputRenderer({ output }: { output: CellOutput }) {
             ? output.data['text/plain'].join('')
             : output.data['text/plain'];
           return (
-            <pre className="text-sm font-mono whitespace-pre-wrap">
-              {text}
-            </pre>
+            <pre className="text-sm font-mono whitespace-pre-wrap">{text}</pre>
           );
         }
       }
@@ -98,7 +102,9 @@ function CellOutputRenderer({ output }: { output: CellOutput }) {
 }
 
 function JupyterCell({ cell }: { cell: NotebookCell }) {
-  const source = Array.isArray(cell.source) ? cell.source.join('') : cell.source;
+  const source = Array.isArray(cell.source)
+    ? cell.source.join('')
+    : cell.source;
   const [isInputExpanded, setIsInputExpanded] = useState(true);
 
   if (cell.cell_type === 'markdown') {
@@ -129,7 +135,7 @@ function JupyterCell({ cell }: { cell: NotebookCell }) {
         <Button
           size="sm"
           variant="light"
-          onPress={() => setIsInputExpanded(!isInputExpanded)}
+          onClick={() => setIsInputExpanded(!isInputExpanded)}
         >
           {isInputExpanded ? '隐藏' : '显示'}
         </Button>
@@ -137,14 +143,20 @@ function JupyterCell({ cell }: { cell: NotebookCell }) {
 
       {isInputExpanded && (
         <div className="p-0">
-          <CodeBlock content={source} language="python" />
+          <CodeBlock
+            content={source}
+            language="python"
+          />
         </div>
       )}
 
       {cell.outputs && cell.outputs.length > 0 && (
         <div className="border-t border-default-200">
           {cell.outputs.map((output, idx) => (
-            <div key={idx} className="p-3">
+            <div
+              key={idx}
+              className="p-3"
+            >
               <CellOutputRenderer output={output} />
             </div>
           ))}
@@ -196,7 +208,10 @@ export function JupyterViewer({ content }: JupyterViewerProps) {
       </div>
 
       {notebook.cells.map((cell, index) => (
-        <JupyterCell key={index} cell={cell} />
+        <JupyterCell
+          key={index}
+          cell={cell}
+        />
       ))}
     </div>
   );

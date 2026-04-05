@@ -1,12 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import {
-  Card,
-  Button,
-  Chip,
-  Input,
-} from '@heroui/react';
+import { Card, Button, Chip, Input } from '@heroui/react';
 import { toast } from '@heroui/react';
 import { useGistStore } from '@/stores/useGistStore';
 import { gistApi } from '@/lib/api/gist';
@@ -14,18 +9,33 @@ import { getFileType } from '@/lib/utils/fileType';
 import type { Gist } from '@/types/gist';
 import { useRouter } from 'next/navigation';
 
-function GistCard({ gist, onView, onDelete }: { gist: Gist; onView: () => void; onDelete: () => void }) {
+function GistCard({
+  gist,
+  onView,
+  onDelete,
+}: {
+  gist: Gist;
+  onView: () => void;
+  onDelete: () => void;
+}) {
   const fileCount = Object.keys(gist.files || {}).length;
 
   return (
-    <Card className="w-full hover:shadow-lg transition-shadow cursor-pointer" isPressable onPress={onView}>
+    <Card
+      className="w-full hover:shadow-lg transition-shadow cursor-pointer"
+      onClick={onView}
+    >
       <Card.Header className="justify-between">
         <div className="flex flex-col items-start gap-1">
           <p className="text-lg font-semibold line-clamp-1">
             {gist.description || '无描述'}
           </p>
           <div className="flex gap-2 items-center">
-            <Chip size="sm" variant="tertiary" color={gist.public ? 'success' : 'default'}>
+            <Chip
+              size="sm"
+              variant="tertiary"
+              color={gist.public ? 'success' : 'default'}
+            >
               {gist.public ? '公开' : '私有'}
             </Chip>
             <span className="text-sm text-default-500">{fileCount} 个文件</span>
@@ -34,16 +44,27 @@ function GistCard({ gist, onView, onDelete }: { gist: Gist; onView: () => void; 
       </Card.Header>
       <Card.Content>
         <div className="flex flex-wrap gap-2">
-          {gist.files && Object.keys(gist.files).slice(0, 5).map((filename) => {
-            const ft = getFileType(filename);
-            return (
-              <Chip key={filename} size="sm" variant="bordered" className="text-xs">
-                {filename}
-              </Chip>
-            );
-          })}
+          {gist.files &&
+            Object.keys(gist.files)
+              .slice(0, 5)
+              .map((filename) => {
+                const ft = getFileType(filename);
+                return (
+                  <Chip
+                    key={filename}
+                    size="sm"
+                    variant="bordered"
+                    className="text-xs"
+                  >
+                    {filename}
+                  </Chip>
+                );
+              })}
           {fileCount > 5 && (
-            <Chip size="sm" variant="tertiary">
+            <Chip
+              size="sm"
+              variant="tertiary"
+            >
               +{fileCount - 5} 更多
             </Chip>
           )}
@@ -58,7 +79,15 @@ function GistCard({ gist, onView, onDelete }: { gist: Gist; onView: () => void; 
         </div>
       </Card.Content>
       <Card.Footer className="justify-end gap-2">
-        <Button size="sm" variant="light" variant="danger" onPress={(e) => { e.stopPropagation(); onDelete(); }}>
+        <Button
+          size="sm"
+          variant="light"
+          variant="danger"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+        >
           删除
         </Button>
       </Card.Footer>
@@ -120,11 +149,14 @@ export function GistList() {
   };
 
   const filteredGists = gists.filter((gist) => {
-    const matchesFilter = filter === 'all' || (filter === 'public' ? gist.public : !gist.public);
+    const matchesFilter =
+      filter === 'all' || (filter === 'public' ? gist.public : !gist.public);
     const matchesSearch =
       !searchQuery ||
       gist.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      Object.keys(gist.files || {}).some((f) => f.toLowerCase().includes(searchQuery.toLowerCase()));
+      Object.keys(gist.files || {}).some((f) =>
+        f.toLowerCase().includes(searchQuery.toLowerCase()),
+      );
     return matchesFilter && matchesSearch;
   });
 
@@ -148,7 +180,10 @@ export function GistList() {
             <option value="public">公开</option>
             <option value="private">私有</option>
           </select>
-          <Button variant="primary" onPress={() => setCreateModalOpen(true)}>
+          <Button
+            variant="primary"
+            onClick={() => setCreateModalOpen(true)}
+          >
             新建
           </Button>
         </div>
@@ -159,7 +194,11 @@ export function GistList() {
           <Card.Content className="flex items-center justify-center py-12">
             <div className="text-center text-default-500">
               <p className="text-lg mb-2">请先添加并选择提供商</p>
-              <Button variant="primary" variant="tertiary" onPress={() => router.push('/providers')}>
+              <Button
+                variant="primary"
+                variant="tertiary"
+                onClick={() => router.push('/providers')}
+              >
                 前往提供商管理
               </Button>
             </div>
@@ -178,7 +217,11 @@ export function GistList() {
           <Card.Content className="flex items-center justify-center py-12">
             <div className="text-center text-default-500">
               <p className="text-lg mb-2">暂无 Gist</p>
-              <Button variant="primary" variant="tertiary" onPress={() => setCreateModalOpen(true)}>
+              <Button
+                variant="primary"
+                variant="tertiary"
+                onClick={() => setCreateModalOpen(true)}
+              >
                 创建第一个 Gist
               </Button>
             </div>

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Gist, GistProvider, CreateGistParams, UpdateGistParams } from '@/types/gist';
+import type { Gist, GistProvider } from '@/types/gist';
 
 interface GistState {
   // Provider state
@@ -74,7 +74,7 @@ export const useGistStore = create<GistState>()(
         const { providers } = get();
         set({
           providers: providers.map((p) =>
-            p.id === id ? { ...p, enabled: !p.enabled } : p
+            p.id === id ? { ...p, enabled: !p.enabled } : p,
           ),
         });
       },
@@ -92,7 +92,10 @@ export const useGistStore = create<GistState>()(
         const { gists, selectedGist } = get();
         set({
           gists: gists.map((g) => (g.id === id ? { ...g, ...gistUpdate } : g)),
-          selectedGist: selectedGist?.id === id ? { ...selectedGist, ...gistUpdate } : selectedGist,
+          selectedGist:
+            selectedGist?.id === id
+              ? { ...selectedGist, ...gistUpdate }
+              : selectedGist,
         });
       },
 
@@ -116,6 +119,6 @@ export const useGistStore = create<GistState>()(
         providers: state.providers,
         currentProvider: state.currentProvider,
       }),
-    }
-  )
+    },
+  ),
 );
