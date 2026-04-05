@@ -25,33 +25,46 @@ export function ProviderList() {
     addProvider,
     removeProvider,
   } = useGistStore();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [newProvider, setNewProvider] = useState({
-    type: 'gitee' as GistProviderType,
-    name: '',
-    token: '',
-  });
 
+  // OAuth 登录处理 - 跳转到登录页面
+  const handleOAuthSignIn = (type: GistProviderType) => {
+    window.location.href = `/sign-in?provider=${type}`;
+  };
+
+  // 手动添加 Provider
   const handleAddProvider = () => {
-    if (!newProvider.name || !newProvider.token) {
+    const tokenInput = document.getElementById('provider-token') as HTMLInputElement;
+    const nameInput = document.getElementById('provider-name') as HTMLInputElement;
+    const typeSelect = document.getElementById('provider-type') as HTMLSelectElement;
+
+    const token = tokenInput?.value;
+    const name = nameInput?.value;
+    const type = typeSelect?.value as GistProviderType;
+
+    if (!name || !token) {
       toast.warning('请填写完整信息');
       return;
     }
 
     const provider: GistProvider = {
-      id: `${newProvider.type}-${Date.now()}`,
-      type: newProvider.type,
-      name: newProvider.name,
-      token: newProvider.token,
+      id: `${type}-${Date.now()}`,
+      type,
+      name,
+      token,
       enabled: true,
     };
 
     addProvider(provider);
     setCurrentProvider(provider);
     setIsModalOpen(false);
-    setNewProvider({ type: 'gitee', name: '', token: '' });
     toast.success('提供商添加成功');
+
+    // 重置表单
+    if (tokenInput) tokenInput.value = '';
+    if (nameInput) nameInput.value = '';
   };
 
   const handleRemoveProvider = (id: string) => {
@@ -68,12 +81,14 @@ export function ProviderList() {
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">提供商管理</h2>
-        <Button
-          variant="primary"
-          onClick={() => dialogRef.current?.showModal()}
-        >
-          添加提供商
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => handleOAuthSignIn('github')}>
+            GitHub OAuth 登录
+          </Button>
+          <Button onClick={() => handleOAuthSignIn('gitee')}>
+            Gitee OAuth 登录
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -82,16 +97,13 @@ export function ProviderList() {
             <Card.Content className="flex items-center justify-center py-12">
               <div className="text-center text-default-500">
                 <p className="text-lg mb-2">暂无提供商</p>
-                <p className="text-sm">点击上方按钮添加 Gist 提供商</p>
+                <p className="text-sm">点击上方按钮 OAuth 登录或手动添加 Token</p>
               </div>
             </Card.Content>
           </Card>
         ) : (
           providers.map((provider) => (
-            <Card
-              key={provider.id}
-              className="w-full"
-            >
+            <Card key={provider.id} className="w-full">
               <Card.Header className="justify-between">
                 <div className="flex gap-3">
                   <Avatar
@@ -124,22 +136,12 @@ export function ProviderList() {
               <Card.Footer className="gap-2">
                 <Button
                   size="sm"
-                  variant={
-                    currentProvider?.id === provider.id ? 'flat' : 'solid'
-                  }
-                  color={
-                    currentProvider?.id === provider.id
-                      ? 'primary'
-                      : 'secondary'
-                  }
                   onClick={() => handleSelectProvider(provider)}
                 >
                   {currentProvider?.id === provider.id ? '已选中' : '选中'}
                 </Button>
                 <Button
                   size="sm"
-                  variant="light"
-                  variant="danger"
                   onClick={() => handleRemoveProvider(provider.id)}
                 >
                   删除
@@ -150,61 +152,45 @@ export function ProviderList() {
         )}
       </div>
 
-      {/* 添加提供商对话框 */}
-      <dialog
-        ref={dialogRef}
-        className="p-6 rounded-lg shadow-xl border w-full max-w-md"
-      >
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">添加提供商</h3>
-          <div className="space-y-4">
-            <select
-              className="w-full p-2 border rounded"
-              value={newProvider.type}
-              onChange={(e) =>
-                setNewProvider({
-                  ...newProvider,
-                  type: e.target.value as GistProviderType,
-                })
-              }
-            >
-              <option value="github">GitHub</option>
-              <option value="gitee">Gitee</option>
-            </select>
-            <Input
-              label="名称"
-              placeholder="输入提供商名称"
-              value={newProvider.name}
-              onChange={(e) =>
-                setNewProvider({ ...newProvider, name: e.target.value })
-              }
-            />
-            <Input
-              label="Token"
-              type="password"
-              placeholder="输入 Access Token"
-              value={newProvider.token}
-              onChange={(e) =>
-                setNewProvider({ ...newProvider, token: e.target.value })
-              }
-            />
+      {/* 手动添加提供商对话框 */}
+      <Button onClick={() => setIsModalOpen(true)}>
+        手动添加 Token
+      </Button>
+
+      {/* 手动添加对话框 */}
+      {isModalOpen && (
+        <dialog open className="modal backdrop:bg-black/50" onClose={() => setIsModalOpen(false)}>
+          <div className="modal-box p-6 rounded-lg shadow-xl border w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">手动添加提供商</h3>
+            <div className="space-y-4">
+              <select id="provider-type" className="select select-bordered w-full">
+                <option value="github">GitHub</option>
+                <option value="gitee">Gitee</option>
+              </select>
+              <Input
+                id="provider-name"
+                placeholder="输入提供商名称"
+              />
+              <Input
+                id="provider-token"
+                type="password"
+                placeholder="输入 Access Token"
+              />
+              <div className="flex justify-end gap-2">
+                <Button onClick={() => setIsModalOpen(false)}>
+                  取消
+                </Button>
+                <Button onClick={handleAddProvider}>
+                  添加
+                </Button>
+              </div>
+            </div>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="tertiary"
-              onClick={() => dialogRef.current?.close()}
-            >
-              取消
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handleAddProvider}
-            >
-              添加
-            </Button>
-          </div>
-        </div>
-      </dialog>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={() => setIsModalOpen(false)}>close</button>
+          </form>
+        </dialog>
+      )}
     </div>
   );
 }
