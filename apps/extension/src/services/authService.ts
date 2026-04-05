@@ -8,12 +8,10 @@ export async function getGithubAccessToken() {
   });
 
   if (!session) {
-    throw new Error('');
+    throw new Error('Failed to get GitHub session. Please try again.');
   }
 
-  const accessToken = session.accessToken;
-
-  return accessToken;
+  return session.accessToken;
 }
 
 export async function getGiteeAccessToken() {
@@ -24,7 +22,7 @@ export async function getGiteeAccessToken() {
   });
 
   if (!session) {
-    throw new Error('');
+    throw new Error('Failed to get Gitee session. Please try again.');
   }
 
   const accessToken = session.accessToken;
