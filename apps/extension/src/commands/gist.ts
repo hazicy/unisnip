@@ -421,7 +421,6 @@ export async function uploadFileCommand(
       refreshCallback?.();
     }
   } catch (error) {
-    console.error('Error uploading file:', error);
     vscode.window.showErrorMessage(vscode.l10n.t('errorUploadingFile'));
   }
 }
