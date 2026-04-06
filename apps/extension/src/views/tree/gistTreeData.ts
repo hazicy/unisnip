@@ -1,11 +1,10 @@
 import * as vscode from 'vscode';
-import type { Gist, GistProviderEnum } from '../../providers/gist/types';
+import type { Gist } from '../../providers/gist/types';
 import type { GistServiceManager } from '../../services/gist/gistManager';
 import { SCHEMA } from '../../extension';
 
 export type GistTreeItem = {
   gist?: Gist;
-  adapter?: GistProviderEnum;
   providerId: string;
 } & vscode.TreeItem;
 

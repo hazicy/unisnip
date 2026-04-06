@@ -21,7 +21,7 @@ export async function activate(context: vscode.ExtensionContext) {
     ),
   );
 
-  // 初始化 adapter manager
+  // 初始化 gist service manager
   const gistManager = GistServiceManager.getInstance(context);
   await gistManager.init();
 
