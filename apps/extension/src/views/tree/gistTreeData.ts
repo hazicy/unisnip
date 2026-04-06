@@ -87,14 +87,21 @@ export class GistTreeProvider implements vscode.TreeDataProvider<GistTreeItem> {
     const cached = this.getCached<GistTreeItem[]>(cacheKey);
     if (cached) return cached;
 
-    const items: GistFolderNode[] = [];
+    // 并行获取所有 provider 的 Gist
+    const gistsResults = await Promise.all(
+      providers.map(async ([providerId, provider]) => {
+        try {
+          const gists = await provider.getGists();
+          return gists.map((gist) => new GistFolderNode(gist, providerId));
+        } catch (error) {
+          console.error(`Error fetching gists from ${providerId}:`, error);
+          return [];
+        }
+      }),
+    );
 
-    for (const [providerId, provider] of providers) {
-      const gists = await provider.getGists();
-      for (const gist of gists) {
-        items.push(new GistFolderNode(gist, providerId));
-      }
-    }
+    // 扁平化结果
+    const items = gistsResults.flat();
 
     this.setCache(cacheKey, items);
     return items;

@@ -25,7 +25,5 @@ export async function getGiteeAccessToken() {
     throw new Error('Failed to get Gitee session. Please try again.');
   }
 
-  const accessToken = session.accessToken;
-
-  return accessToken;
+  return session.accessToken;
 }

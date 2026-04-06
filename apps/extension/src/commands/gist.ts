@@ -253,7 +253,23 @@ export async function deleteGistCommand(
   }
 }
 
-export async function openInExternal(item: GistNode): Promise<void> {}
+export async function openInExternal(item: GistNode): Promise<void> {
+  if (!item.gist?.id) {
+    return;
+  }
+
+  const gistId = item.gist.id;
+  let url: string;
+
+  // 判断是 GitHub 还是 Gitee
+  if (item.providerId.toLowerCase().includes('gitee')) {
+    url = `https://gitee.com/gists/${gistId}`;
+  } else {
+    url = `https://gist.github.com/${gistId}`;
+  }
+
+  await vscode.env.openExternal(vscode.Uri.parse(url));
+}
 
 /**
  * 上传文件到 Gist
