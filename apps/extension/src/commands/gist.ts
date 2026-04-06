@@ -324,7 +324,8 @@ export async function uploadFileCommand(
 
     const service = manager.getService(providerId);
     if (!service) {
-      throw new Error('Service not found');
+      vscode.window.showErrorMessage(vscode.l10n.t('errorUploadingFile'));
+      return;
     }
 
     // 验证文件大小
