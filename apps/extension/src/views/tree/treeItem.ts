@@ -29,7 +29,7 @@ export class GistFileNode extends vscode.TreeItem {
     public readonly providerId: string,
   ) {
     super(filename, vscode.TreeItemCollapsibleState.None);
-    this.id = filename;
+    this.id = gistId;
     this.iconPath = vscode.ThemeIcon.File;
     this.contextValue = 'gistItem';
     this.resourceUri = vscode.Uri.from({
