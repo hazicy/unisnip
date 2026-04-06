@@ -98,7 +98,7 @@ export class GistTreeProvider implements vscode.TreeDataProvider<GistTreeItem> {
         scheme: SCHEMA,
         authority: element.providerId,
         path: `/${filename}`,
-        query: `id=${gist?.id}`,
+        query: `id=${gist.id}`,
       });
 
       return {

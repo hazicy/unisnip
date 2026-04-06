@@ -49,7 +49,7 @@ export async function renameGist(
   }
 
   try {
-    await service?.updateGist(id, {
+    await service.updateGist(id, {
       files: {
         [currentName]: null,
         [newName]: {
