@@ -1,11 +1,10 @@
 import * as vscode from 'vscode';
-import type { Gist, GistProviderEnum } from '../../providers/gist/types';
+import type { Gist } from '../../providers/gist/types';
 import type { GistServiceManager } from '../../services/gist/gistManager';
 import { SCHEMA } from '../../extension';
 
 export type GistTreeItem = {
   gist?: Gist;
-  adapter?: GistProviderEnum;
   providerId: string;
 } & vscode.TreeItem;
 
@@ -75,26 +74,30 @@ export class GistTreeProvider implements vscode.TreeDataProvider<GistTreeItem> {
   }
 
   private async getFileItems(element: GistTreeItem): Promise<GistTreeItem[]> {
-    if (!element.providerId) {
-      throw new Error('');
+    if (!element.providerId || !element.id) {
+      return [];
     }
 
     const service = this.gistManager.getService(element.providerId);
 
-    if (!element.id) {
-      throw vscode.FileSystemError.FileExists();
+    if (!service) {
+      return [];
     }
 
-    const gist = await service?.getGist(element.id);
+    const gist = await service.getGist(element.id);
 
-    const files = Object.keys(gist?.files ?? {});
+    if (!gist) {
+      return [];
+    }
+
+    const files = Object.keys(gist.files ?? {});
 
     const items = files.map((filename): GistTreeItem => {
       const fileUri = vscode.Uri.from({
         scheme: SCHEMA,
         authority: element.providerId,
         path: `/${filename}`,
-        query: `id=${gist?.id}`,
+        query: `id=${gist.id}`,
       });
 
       return {

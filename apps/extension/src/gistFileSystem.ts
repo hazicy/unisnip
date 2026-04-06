@@ -68,14 +68,22 @@ export class GistFileSystemProvider implements vscode.FileSystemProvider {
     try {
       const { gistId, filename, providerId } = this.parseUri(uri);
       const provider = this.manager.getService(providerId);
-      const content = await provider?.getGistContent(gistId, filename);
+
+      if (!provider) {
+        throw vscode.FileSystemError.FileNotFound(uri);
+      }
+
+      const content = await provider.getGistContent(gistId, filename);
 
       if (!content) {
         throw vscode.FileSystemError.FileNotFound();
       }
 
       return new TextEncoder().encode(content);
-    } catch {
+    } catch (e) {
+      if (e instanceof vscode.FileSystemError) {
+        throw e;
+      }
       throw vscode.FileSystemError.FileNotFound(uri);
     }
   }
@@ -93,7 +101,7 @@ export class GistFileSystemProvider implements vscode.FileSystemProvider {
     const contentStr = new TextDecoder().decode(content);
 
     if (!provider) {
-      throw new Error('');
+      throw vscode.FileSystemError.FileNotFound(uri);
     }
 
     if (options.create && !options.overwrite) {
@@ -126,11 +134,15 @@ export class GistFileSystemProvider implements vscode.FileSystemProvider {
 
     const provider = this.manager.getService(providerId);
 
+    if (!provider) {
+      throw vscode.FileSystemError.FileNotFound(uri);
+    }
+
     // 如果有 filename，说明是删除文件；否则删除整个 Gist
     if (filename) {
-      await provider?.deleteGistFile(gistId, filename);
+      await provider.deleteGistFile(gistId, filename);
     } else {
-      await provider?.deleteGist(gistId);
+      await provider.deleteGist(gistId);
     }
 
     this.notifyFileChanged(uri, vscode.FileChangeType.Deleted);
@@ -146,13 +158,18 @@ export class GistFileSystemProvider implements vscode.FileSystemProvider {
   ): Promise<void> {
     const { gistId, filename: oldFilename, providerId } = this.parseUri(oldUri);
     const provider = this.manager.getService(providerId);
+
+    if (!provider) {
+      throw vscode.FileSystemError.FileNotFound(oldUri);
+    }
+
     const { filename: newFilename } = this.parseUri(newUri);
 
     // 获取原文件内容
-    const content = await provider?.getGistContent(gistId, oldFilename);
+    const content = await provider.getGistContent(gistId, oldFilename);
 
     // 更新 Gist：删除旧文件，添加新文件
-    await provider?.updateGist(gistId, {
+    await provider.updateGist(gistId, {
       files: {
         [oldFilename]: null,
         [newFilename]: {
@@ -179,17 +196,22 @@ export class GistFileSystemProvider implements vscode.FileSystemProvider {
       providerId,
     } = this.parseUri(source);
     const provider = this.manager.getService(providerId);
+
+    if (!provider) {
+      throw vscode.FileSystemError.FileNotFound(source);
+    }
+
     const { gistId: destGistId, filename: destFilename } =
       this.parseUri(destination);
 
-    const content = await provider?.getGistContent(
+    const content = await provider.getGistContent(
       sourceGistId,
       sourceFilename,
     );
 
     if (sourceGistId === destGistId) {
       // 同一 Gist 内复制
-      await provider?.updateGist(sourceGistId, {
+      await provider.updateGist(sourceGistId, {
         files: {
           [destFilename]: {
             content,
@@ -198,7 +220,7 @@ export class GistFileSystemProvider implements vscode.FileSystemProvider {
       });
     } else {
       // 跨 Gist 复制
-      await provider?.updateGistContent(
+      await provider.updateGistContent(
         destGistId,
         destFilename,
         content ?? '',

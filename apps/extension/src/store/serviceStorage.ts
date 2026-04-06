@@ -12,6 +12,6 @@ export function loadServices(
 export async function saveService(
   context: vscode.ExtensionContext,
   services: ProviderConfig[],
-) {
+): Promise<void> {
   await context.globalState.update(KEY, services);
 }

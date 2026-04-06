@@ -16,7 +16,7 @@ export class GistServiceManager {
 
   activeServiceId?: string;
 
-  constructor(private context: vscode.ExtensionContext) {}
+  constructor(public readonly context: vscode.ExtensionContext) {}
 
   static getInstance(context: vscode.ExtensionContext) {
     if (!this.instance) {
@@ -61,7 +61,7 @@ export class GistServiceManager {
     return this.services.get(id);
   }
 
-  getAllServices() {
+  getAllServices(): Array<[string, GistService]> {
     return Array.from(this.services.entries());
   }
 

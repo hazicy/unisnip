@@ -39,14 +39,14 @@ export function registerAllCommands(
       'gisthub.createFile',
       (item: GistTreeItem) => createFileCommand(item, context, refreshCallback),
     ),
-    vscode.commands.registerCommand('gisthub.createGist', (item: any) =>
+    vscode.commands.registerCommand('gisthub.createGist', (item?: GistTreeItem) =>
       createGistCommand(context, refreshCallback, item),
     ),
     vscode.commands.registerCommand('gisthub.uploadFile', () =>
       uploadFileCommand(context, refreshCallback),
     ),
-    vscode.commands.registerCommand('gisthub.openInExternal', (item: any) =>
-      openInExternal(context),
+    vscode.commands.registerCommand('gisthub.openInExternal', (item: GistTreeItem) =>
+      openInExternal(item),
     ),
     // Provider management commands
     vscode.commands.registerCommand('gisthub.manageProviders', () =>

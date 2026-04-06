@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { SCHEMA } from '../extension';
 import type { GistTreeItem } from '../views/tree/gistTreeData';
 import { GistServiceManager } from '../services/gist/gistManager';
-import { GistProviderEnum } from '@gisthub/core';
+import { GistProviderEnum, type Gist } from '@gisthub/core';
 
 export async function openGist(
   id: string,
@@ -22,16 +22,21 @@ export async function openGist(
 }
 
 export async function renameGist(
-  { id, label }: GistTreeItem,
+  { id, label, providerId }: GistTreeItem,
   context: vscode.ExtensionContext,
   refreshCallback?: () => void,
 ): Promise<void> {
-  if (!id) {
-    throw vscode.FileSystemError.FileExists();
+  if (!id || !providerId) {
+    return;
   }
 
   const manager = GistServiceManager.getInstance(context);
-  const service = manager.getService(id);
+  const service = manager.getService(providerId);
+
+  if (!service) {
+    vscode.window.showErrorMessage(vscode.l10n.t('errorRenamingFile'));
+    return;
+  }
   const currentName = typeof label === 'string' ? label : label?.label || '';
 
   const newName = await vscode.window.showInputBox({
@@ -44,7 +49,7 @@ export async function renameGist(
   }
 
   try {
-    await service?.updateGist(id, {
+    await service.updateGist(id, {
       files: {
         [currentName]: null,
         [newName]: {
@@ -61,16 +66,16 @@ export async function renameGist(
 }
 
 export async function deleteFileCommand(
-  { id, label, resourceUri }: GistTreeItem,
+  { id, providerId, resourceUri }: GistTreeItem,
   context: vscode.ExtensionContext,
   refreshCallback?: () => void,
 ): Promise<void> {
-  if (!id) {
-    throw vscode.FileSystemError.FileExists();
+  if (!id || !providerId) {
+    return;
   }
 
   const manager = GistServiceManager.getInstance(context);
-  const service = manager.getService(id);
+  const service = manager.getService(providerId);
   const confirm = await vscode.window.showWarningMessage(
     vscode.l10n.t('confirmDelete'),
     { modal: true },
@@ -82,11 +87,12 @@ export async function deleteFileCommand(
   }
 
   if (!resourceUri) {
-    throw new Error('');
+    vscode.window.showErrorMessage(vscode.l10n.t('errorDeletingFile'));
+    return;
   }
 
   try {
-    vscode.workspace.fs.delete(resourceUri);
+    await vscode.workspace.fs.delete(resourceUri);
     vscode.window.showInformationMessage(vscode.l10n.t('fileDeleted'));
     refreshCallback?.();
   } catch (error) {
@@ -147,7 +153,13 @@ export async function createGistCommand(
     }
 
     const service = manager.getService(providerId);
-    await service?.createGist({
+
+    if (!service) {
+      vscode.window.showErrorMessage(vscode.l10n.t('errorCreatingGist'));
+      return;
+    }
+
+    await service.createGist({
       description,
       public: false,
       files: {
@@ -169,15 +181,16 @@ export async function createFileCommand(
   context: vscode.ExtensionContext,
   refreshCallback?: () => void,
 ): Promise<void> {
-  if (!id) {
-    throw vscode.FileSystemError.FileExists();
+  if (!id || !providerId) {
+    return;
   }
 
   const manager = GistServiceManager.getInstance(context);
   const service = manager.getService(providerId);
 
   if (!service) {
-    throw new Error('找不到这个服务');
+    vscode.window.showErrorMessage(vscode.l10n.t('errorCreatingFile'));
+    return;
   }
 
   const filename = await vscode.window.showInputBox({
@@ -210,12 +223,11 @@ export async function deleteGistCommand(
   context: vscode.ExtensionContext,
   refreshCallback?: () => void,
 ): Promise<void> {
-  if (!id) {
-    throw vscode.FileSystemError.FileExists();
+  if (!id || !providerId) {
+    return;
   }
 
   const manager = GistServiceManager.getInstance(context);
-  const service = manager.getService(id);
   const gistName = typeof label === 'string' ? label : label?.label || '';
   const confirm = await vscode.window.showWarningMessage(
     vscode.l10n.t('confirmDeleteGist', gistName),
@@ -228,11 +240,12 @@ export async function deleteGistCommand(
   }
 
   if (!resourceUri) {
-    throw new Error('');
+    vscode.window.showErrorMessage(vscode.l10n.t('errorDeletingGist'));
+    return;
   }
 
   try {
-    vscode.workspace.fs.delete(resourceUri, { recursive: false });
+    await vscode.workspace.fs.delete(resourceUri, { recursive: false });
     vscode.window.showInformationMessage(vscode.l10n.t('gistDeleted'));
     refreshCallback?.();
   } catch (error) {
@@ -240,7 +253,17 @@ export async function deleteGistCommand(
   }
 }
 
-export async function openInExternal(context: vscode.ExtensionContext) {}
+export async function openInExternal(
+  item: GistTreeItem,
+): Promise<void> {
+  const gist = item.gist;
+  if (!gist?.html_url) {
+    vscode.window.showErrorMessage(vscode.l10n.t('errorOpeningExternal'));
+    return;
+  }
+
+  await vscode.env.openExternal(vscode.Uri.parse(gist.html_url));
+}
 
 /**
  * 上传文件到 Gist
@@ -301,7 +324,8 @@ export async function uploadFileCommand(
 
     const service = manager.getService(providerId);
     if (!service) {
-      throw new Error('Service not found');
+      vscode.window.showErrorMessage(vscode.l10n.t('errorUploadingFile'));
+      return;
     }
 
     // 验证文件大小
@@ -378,7 +402,7 @@ export async function uploadFileCommand(
       }
 
       const selectedGist = await vscode.window.showQuickPick(
-        gists.map((gist: any) => ({
+        gists.map((gist: Gist) => ({
           label: gist.description || vscode.l10n.t('unnamedGist'),
           description: gist.id,
           gist,
