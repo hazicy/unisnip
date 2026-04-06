@@ -7,6 +7,7 @@ export async function createProvider(
   type: GistProviderEnum,
   token: string,
   context: vscode.ExtensionContext,
+  alias?: string,
 ) {
   const manager = GistServiceManager.getInstance(context);
 
@@ -17,12 +18,14 @@ export async function createProvider(
 
   const service = createGistService(type, token, proxyUrl);
 
+  const id = alias ?? (type === GistProviderEnum.GitHub ? 'github' : 'gitee');
+
   switch (type) {
     case GistProviderEnum.GitHub:
-      manager.registerService('github', service);
+      manager.registerService(id, service);
       break;
     case GistProviderEnum.Gitee:
-      manager.registerService('gitee', service);
+      manager.registerService(id, service);
       break;
   }
 }

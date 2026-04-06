@@ -44,7 +44,7 @@ export function registerAllCommands(
       (item: GistNode) => openInExternal(item),
     ),
     vscode.commands.registerCommand('gisthub.manageProviders', () =>
-      openProviderManager(gistManager, context),
+      openProviderManager(gistManager, context, refreshCallback),
     ),
   ];
 

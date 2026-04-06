@@ -254,7 +254,8 @@ export async function deleteGistCommand(
 }
 
 export async function openInExternal(item: GistNode): Promise<void> {
-  if (!item.gist?.id) {
+  // GistFileNode 没有 gist 属性，只能从 GistFolderNode 获取
+  if (!('gist' in item) || !item.gist?.id) {
     return;
   }
 

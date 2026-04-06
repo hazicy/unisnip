@@ -44,12 +44,20 @@ export class GistServiceManager {
   }
 
   registerService(id: string, service: GistService) {
-    this.services.set(id, service);
-    this.configs.push({
-      id,
-      provider: service.getProviderName(),
-      enabled: true,
-    });
+    const existingIndex = this.configs.findIndex((c) => c.id === id);
+
+    if (existingIndex >= 0) {
+      // 更新现有服务
+      this.services.set(id, service);
+    } else {
+      // 添加新服务
+      this.services.set(id, service);
+      this.configs.push({
+        id,
+        provider: service.getProviderName(),
+        enabled: true,
+      });
+    }
 
     saveService(this.context, this.configs);
   }

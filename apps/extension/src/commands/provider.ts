@@ -33,19 +33,21 @@ function getProviderIcon(config: ProviderConfig): string {
 export async function openProviderManager(
   gistManager: GistServiceManager,
   context: vscode.ExtensionContext,
+  refreshCallback?: () => void,
 ): Promise<void> {
   const configs = gistManager.getConfig();
 
   if (configs.length === 0) {
-    await handleAddProvider(context);
+    await handleAddProvider(context, refreshCallback);
     return;
   }
 
-  await handleManageProviders(configs, context, gistManager);
+  await handleManageProviders(configs, context, gistManager, refreshCallback);
 }
 
 async function handleAddProvider(
   context: vscode.ExtensionContext,
+  refreshCallback?: () => void,
 ): Promise<void> {
   const pick = await vscode.window.showQuickPick(PROVIDER_OPTIONS, {
     placeHolder: vscode.l10n.t('noActiveProviders'),
@@ -55,12 +57,23 @@ async function handleAddProvider(
     return;
   }
 
+  const alias = await vscode.window.showInputBox({
+    prompt: vscode.l10n.t('enterGistName'),
+    placeHolder: pick.value === GistProviderEnum.GitHub ? 'GitHub' : 'Gitee',
+  });
+
+  if (alias === undefined) {
+    return;
+  }
+
   const getToken = PROVIDER_TOKEN_GETTERS[pick.value];
   const token = await getToken();
-  await createProvider(pick.value, token, context);
+  await createProvider(pick.value, token, context, alias);
+
+  refreshCallback?.();
 }
 
-type ProviderAction = 'edit' | 'delete' | 'add';
+type ProviderAction = 'reauthenticate' | 'delete' | 'add';
 
 interface ProviderQuickPickItem extends vscode.QuickPickItem {
   action: ProviderAction;
@@ -71,6 +84,7 @@ async function handleManageProviders(
   configs: ProviderConfig[],
   context: vscode.ExtensionContext,
   gistManager: GistServiceManager,
+  refreshCallback?: () => void,
 ): Promise<void> {
   // 第一级：选择 provider
   const providerItems = [
@@ -95,16 +109,16 @@ async function handleManageProviders(
 
   // 选了 Add New Provider
   if (!selectedProvider.config) {
-    await handleAddProvider(context);
+    await handleAddProvider(context, refreshCallback);
     return;
   }
 
   // 第二级：选择操作
   const actionItems: ProviderQuickPickItem[] = [
     {
-      label: '$(edit) Edit',
+      label: '$(refresh) Re-authenticate',
       description: selectedProvider.config.id,
-      action: 'edit',
+      action: 'reauthenticate',
       providerId: selectedProvider.config.id,
     },
     {
@@ -123,21 +137,32 @@ async function handleManageProviders(
     return;
   }
 
-  await executeProviderAction(selectedAction, context, gistManager);
+  await executeProviderAction(
+    selectedAction,
+    context,
+    gistManager,
+    refreshCallback,
+  );
 }
 
 async function executeProviderAction(
   item: ProviderQuickPickItem,
   context: vscode.ExtensionContext,
   gistManager: GistServiceManager,
+  refreshCallback?: () => void,
 ): Promise<void> {
   switch (item.action) {
     case 'add':
-      await handleAddProvider(context);
+      await handleAddProvider(context, refreshCallback);
       break;
-    case 'edit':
+    case 'reauthenticate':
       if (item.providerId) {
-        await editProvider(item.providerId, context);
+        await reauthenticateProvider(
+          item.providerId,
+          gistManager,
+          context,
+          refreshCallback,
+        );
       }
       break;
     case 'delete':
@@ -161,48 +186,39 @@ export async function addProvider(
     return;
   }
 
-  const token = await vscode.window.showInputBox({
-    prompt:
-      type === GistProviderEnum.GitHub
-        ? 'Enter your GitHub access token'
-        : 'Enter your Gitee access token',
-    password: true,
-    placeHolder:
-      type === GistProviderEnum.GitHub ? 'ghp_xxxxxxxx' : 'access_token',
-  });
+  // 使用 OAuth 获取 token
+  const getToken = PROVIDER_TOKEN_GETTERS[type];
+  const token = await getToken();
 
-  if (token === undefined) {
-    return;
-  }
-
-  await createProvider(type, token, gistManager.context);
+  await createProvider(type, token, gistManager.context, alias);
 
   vscode.window.showInformationMessage(vscode.l10n.t('gistUpdated'));
 }
 
-async function editProvider(
+async function reauthenticateProvider(
   providerId: string,
+  gistManager: GistServiceManager,
   context: vscode.ExtensionContext,
+  refreshCallback?: () => void,
 ): Promise<void> {
-  const isGitee = providerId.toLowerCase().includes('gitee');
+  const configs = gistManager.getConfig();
+  const config = configs.find((c) => c.id === providerId);
 
-  const token = await vscode.window.showInputBox({
-    prompt: isGitee
-      ? 'Enter your Gitee access token'
-      : 'Enter your GitHub access token',
-    password: true,
-    placeHolder: isGitee ? 'access_token' : 'ghp_xxxxxxxx',
-  });
-
-  if (token === undefined) {
+  if (!config || !config.provider) {
+    vscode.window.showErrorMessage('Provider configuration not found');
     return;
   }
 
-  const providerType = isGitee
-    ? GistProviderEnum.Gitee
-    : GistProviderEnum.GitHub;
+  const providerType = config.provider;
 
-  await createProvider(providerType, token, context);
+  // 使用 OAuth 重新获取 token
+  const getToken = PROVIDER_TOKEN_GETTERS[providerType];
+  const token = await getToken();
+
+  // 重新创建 provider
+  await createProvider(providerType, token, context, providerId);
+
+  refreshCallback?.();
 
   vscode.window.showInformationMessage(vscode.l10n.t('gistUpdated'));
 }
