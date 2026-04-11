@@ -1,8 +1,8 @@
-import { StorageType, GistSubType, type StorageConfig } from '../types/storage';
-import { GitHubProvider, GiteeProvider } from '../providers';
-import { S3Provider } from '../providers/s3Provider';
-import { WebDAVProvider } from '../providers/webdavProvider';
-import { StorageService } from './storageService';
+import { StorageType, GistSubType, StorageConfig } from '../src/types/storage';
+import { GitHubProvider, GiteeProvider } from '../src/providers';
+import { S3Provider } from '../src/providers/s3Provider';
+import { WebDAVProvider } from '../src/providers/webdavProvider';
+import { StorageService } from '../src/services/storageService';
 
 /**
  * 创建 StorageService 实例的工厂函数

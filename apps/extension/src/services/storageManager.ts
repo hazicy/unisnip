@@ -8,7 +8,7 @@ import {
 } from '@gisthub/core';
 import { loadServices, saveService } from '../store/serviceStorage';
 import { getGiteeAccessToken, getGithubAccessToken } from './authService';
-import type { ProviderConfig } from '../providers/gist/types';
+import type { ProviderConfig } from '../types';
 
 export class StorageServiceManager {
   private services = new Map<string, StorageService>();

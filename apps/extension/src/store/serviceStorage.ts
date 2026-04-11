@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { ProviderConfig } from '../providers/gist/types';
+import type { ProviderConfig } from '../types';
 
 const KEY = 'gist.services';
 

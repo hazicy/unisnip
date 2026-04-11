@@ -173,27 +173,108 @@ export class GiteeGistProvider implements StorageProvider {
     };
   }
 
-  async list(path: string): Promise<StorageEntry[]> {
-    const response = await this.axiosInstance.get<GiteeGistObject[]>('/gists', {
-      params: {
-        page: 1,
-        per_page: 100,
-      },
-    });
+  private normalizePath(path: string): string {
+    return path.replace(/^\/+|\/+$/g, '');
+  }
 
-    return response.data.map((g) =>
-      this.gistToEntry(this.convertToStandardGist(g)),
+  private splitPath(path: string): { gistId: string; filename?: string } {
+    const normalizedPath = this.normalizePath(path);
+    const [gistId, ...rest] = normalizedPath.split('/');
+    return {
+      gistId,
+      filename: rest.length > 0 ? rest.join('/') : undefined,
+    };
+  }
+
+  private fileToEntry(gist: Gist, file: GistFile): StorageEntry {
+    return {
+      id: `${gist.id}/${file.filename}`,
+      name: file.filename,
+      type: 'file',
+      path: `${gist.id}/${file.filename}`,
+      size: file.size || 0,
+      createdAt: gist.created_at,
+      updatedAt: gist.updated_at,
+      metadata: {
+        gistId: gist.id,
+        language: file.language,
+        rawUrl: file.raw_url,
+      },
+    };
+  }
+
+  async list(path: string): Promise<StorageEntry[]> {
+    const normalizedPath = this.normalizePath(path);
+
+    if (!normalizedPath) {
+      const response = await this.axiosInstance.get<GiteeGistObject[]>('/gists', {
+        params: {
+          page: 1,
+          per_page: 100,
+        },
+      });
+
+      return response.data.map((g) =>
+        this.gistToEntry(this.convertToStandardGist(g)),
+      );
+    }
+
+    const { gistId, filename } = this.splitPath(normalizedPath);
+    if (!gistId || filename) {
+      return [];
+    }
+
+    const response = await this.axiosInstance.get<GiteeGistObject>(
+      `/gists/${gistId}`,
     );
+    const gist = this.convertToStandardGist(response.data);
+
+    return Object.values(gist.files).map((file) => this.fileToEntry(gist, file));
   }
 
   async getEntry(path: string): Promise<StorageEntry> {
-    const response = await this.axiosInstance.get<GiteeGistObject>(
-      `/gists/${path}`,
-    );
-    return this.gistToEntry(this.convertToStandardGist(response.data));
+    const { gistId, filename } = this.splitPath(path);
+    if (!gistId) {
+      throw new Error('Entry path is required');
+    }
+
+    const response = await this.axiosInstance.get<GiteeGistObject>(`/gists/${gistId}`);
+    const gist = this.convertToStandardGist(response.data);
+
+    if (!filename) {
+      return this.gistToEntry(gist);
+    }
+
+    const file = gist.files[filename];
+    if (!file) {
+      throw new Error(`Entry not found: ${path}`);
+    }
+
+    return this.fileToEntry(gist, file);
   }
 
   async createEntry(entry: Partial<StorageEntry>): Promise<StorageEntry> {
+    const path = entry.path || '';
+    const { gistId, filename } = this.splitPath(path);
+
+    if (entry.type === 'file' && gistId && filename) {
+      const content = ((entry.metadata as any)?.content || '') as string;
+      const updatedResponse = await this.axiosInstance.patch<GiteeGistObject>(
+        `/gists/${gistId}`,
+        {
+          files: {
+            [filename]: { content },
+          },
+        },
+      );
+      const gist = this.convertToStandardGist(updatedResponse.data);
+      const file = gist.files[filename];
+      if (!file) {
+        throw new Error(`Failed to create file: ${filename}`);
+      }
+      return this.fileToEntry(gist, file);
+    }
+
     const response = await this.axiosInstance.post<GiteeGistObject>('/gists', {
       description: entry.name || '',
       files: {
@@ -211,8 +292,42 @@ export class GiteeGistProvider implements StorageProvider {
     id: string,
     data: Partial<StorageEntry>,
   ): Promise<StorageEntry> {
+    const { gistId, filename } = this.splitPath(id);
+    if (!gistId) {
+      throw new Error('Entry id is required');
+    }
+
+    if (filename && data.name && data.name !== filename) {
+      const gistResponse = await this.axiosInstance.get<GiteeGistObject>(
+        `/gists/${gistId}`,
+      );
+      const gist = this.convertToStandardGist(gistResponse.data);
+      const sourceFile = gist.files[filename];
+
+      if (!sourceFile) {
+        throw new Error(`Entry not found: ${id}`);
+      }
+
+      const updatedResponse = await this.axiosInstance.patch<GiteeGistObject>(
+        `/gists/${gistId}`,
+        {
+          files: {
+            [data.name]: { content: sourceFile.content || '' },
+            [filename]: null as any,
+          },
+        },
+      );
+
+      const updatedGist = this.convertToStandardGist(updatedResponse.data);
+      const renamed = updatedGist.files[data.name];
+      if (!renamed) {
+        throw new Error(`Rename failed: ${filename} -> ${data.name}`);
+      }
+      return this.fileToEntry(updatedGist, renamed);
+    }
+
     const response = await this.axiosInstance.patch<GiteeGistObject>(
-      `/gists/${id}`,
+      `/gists/${gistId}`,
       { description: data.name },
     );
 
@@ -220,14 +335,40 @@ export class GiteeGistProvider implements StorageProvider {
   }
 
   async deleteEntry(id: string): Promise<void> {
-    await this.axiosInstance.delete(`/gists/${id}`);
+    const { gistId, filename } = this.splitPath(id);
+    if (!gistId) {
+      throw new Error('Entry id is required');
+    }
+
+    if (filename) {
+      await this.axiosInstance.patch(`/gists/${gistId}`, {
+        files: {
+          [filename]: null as any,
+        },
+      });
+      return;
+    }
+
+    await this.axiosInstance.delete(`/gists/${gistId}`);
   }
 
   async readContent(id: string): Promise<StorageContent> {
-    const response = await this.axiosInstance.get<GiteeGistObject>(
-      `/gists/${id}`,
-    );
+    const { gistId, filename } = this.splitPath(id);
+    if (!gistId) {
+      throw new Error('Entry id is required');
+    }
+
+    const response = await this.axiosInstance.get<GiteeGistObject>(`/gists/${gistId}`);
     const gist = this.convertToStandardGist(response.data);
+
+    if (filename) {
+      const file = gist.files[filename];
+      if (!file) {
+        throw new Error(`Entry not found: ${id}`);
+      }
+      return { content: file.content || '', encoding: 'utf-8' };
+    }
+
     const files = Object.values(gist.files);
 
     if (files.length === 0) {
@@ -247,22 +388,33 @@ export class GiteeGistProvider implements StorageProvider {
   }
 
   async writeContent(id: string, content: string): Promise<StorageEntry> {
-    const response = await this.axiosInstance.get<GiteeGistObject>(
-      `/gists/${id}`,
-    );
+    const { gistId, filename } = this.splitPath(id);
+    if (!gistId) {
+      throw new Error('Entry id is required');
+    }
+
+    const response = await this.axiosInstance.get<GiteeGistObject>(`/gists/${gistId}`);
     const gist = this.convertToStandardGist(response.data);
-    const files = Object.keys(gist.files);
-    const filename = files[0] || 'untitled.txt';
+    const targetFilename = filename || Object.keys(gist.files)[0] || 'untitled.txt';
 
     const updatedResponse = await this.axiosInstance.patch<GiteeGistObject>(
-      `/gists/${id}`,
+      `/gists/${gistId}`,
       {
         files: {
-          [filename]: { content },
+          [targetFilename]: { content },
         },
       },
     );
 
-    return this.gistToEntry(this.convertToStandardGist(updatedResponse.data));
+    const updatedGist = this.convertToStandardGist(updatedResponse.data);
+    if (filename) {
+      const target = updatedGist.files[targetFilename];
+      if (!target) {
+        throw new Error(`Entry not found: ${id}`);
+      }
+      return this.fileToEntry(updatedGist, target);
+    }
+
+    return this.gistToEntry(updatedGist);
   }
 }

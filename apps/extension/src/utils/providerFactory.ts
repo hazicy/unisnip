@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { StorageType, GistSubType, type StorageConfig } from '@gisthub/core';
-import { StorageServiceManager } from './storageManager';
-import type { ProviderConfig } from '../providers/gist/types';
+import { StorageServiceManager } from '../services/storageManager';
+import type { ProviderConfig } from '../types';
 
 export async function createProvider(
   config: ProviderConfig,

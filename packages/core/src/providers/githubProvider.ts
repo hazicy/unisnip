@@ -97,19 +97,96 @@ export class GitHubGistProvider implements StorageProvider {
     };
   }
 
+  private normalizePath(path: string): string {
+    return path.replace(/^\/+|\/+$/g, '');
+  }
+
+  private splitPath(path: string): { gistId: string; filename?: string } {
+    const normalizedPath = this.normalizePath(path);
+    const [gistId, ...rest] = normalizedPath.split('/');
+    return {
+      gistId,
+      filename: rest.length > 0 ? rest.join('/') : undefined,
+    };
+  }
+
+  private fileToEntry(gist: Gist, file: GistFile): StorageEntry {
+    return {
+      id: `${gist.id}/${file.filename}`,
+      name: file.filename,
+      type: 'file',
+      path: `${gist.id}/${file.filename}`,
+      size: file.size || 0,
+      createdAt: gist.created_at,
+      updatedAt: gist.updated_at,
+      metadata: {
+        gistId: gist.id,
+        language: file.language,
+        rawUrl: file.raw_url,
+      },
+    };
+  }
+
   async list(path: string): Promise<StorageEntry[]> {
-    const response = await this.octokit.gists.list();
-    const gists = response.data as unknown as Gist[];
-    return gists.map((gist) => this.gistToEntry(gist));
+    const normalizedPath = this.normalizePath(path);
+
+    if (!normalizedPath) {
+      const response = await this.octokit.gists.list();
+      const gists = response.data as unknown as Gist[];
+      return gists.map((gist) => this.gistToEntry(gist));
+    }
+
+    const { gistId, filename } = this.splitPath(normalizedPath);
+    if (!gistId || filename) {
+      return [];
+    }
+
+    const response = await this.octokit.gists.get({ gist_id: gistId });
+    const gist = response.data as unknown as Gist;
+    return Object.values(gist.files).map((file) => this.fileToEntry(gist, file));
   }
 
   async getEntry(path: string): Promise<StorageEntry> {
-    const response = await this.octokit.gists.get({ gist_id: path });
+    const { gistId, filename } = this.splitPath(path);
+    if (!gistId) {
+      throw new Error('Entry path is required');
+    }
+
+    const response = await this.octokit.gists.get({ gist_id: gistId });
     const gist = response.data as unknown as Gist;
-    return this.gistToEntry(gist);
+
+    if (!filename) {
+      return this.gistToEntry(gist);
+    }
+
+    const file = gist.files[filename];
+    if (!file) {
+      throw new Error(`Entry not found: ${path}`);
+    }
+
+    return this.fileToEntry(gist, file);
   }
 
   async createEntry(entry: Partial<StorageEntry>): Promise<StorageEntry> {
+    const path = entry.path || '';
+    const { gistId, filename } = this.splitPath(path);
+
+    if (entry.type === 'file' && gistId && filename) {
+      const content = ((entry.metadata as any)?.content || '') as string;
+      const updatedResponse = await this.octokit.gists.update({
+        gist_id: gistId,
+        files: {
+          [filename]: { content },
+        },
+      });
+      const gist = updatedResponse.data as unknown as Gist;
+      const file = gist.files[filename];
+      if (!file) {
+        throw new Error(`Failed to create file: ${filename}`);
+      }
+      return this.fileToEntry(gist, file);
+    }
+
     const response = await this.octokit.gists.create({
       description: entry.name || '',
       files: {
@@ -127,8 +204,38 @@ export class GitHubGistProvider implements StorageProvider {
     id: string,
     data: Partial<StorageEntry>,
   ): Promise<StorageEntry> {
+    const { gistId, filename } = this.splitPath(id);
+    if (!gistId) {
+      throw new Error('Entry id is required');
+    }
+
+    if (filename && data.name && data.name !== filename) {
+      const gistResponse = await this.octokit.gists.get({ gist_id: gistId });
+      const gist = gistResponse.data as unknown as Gist;
+      const sourceFile = gist.files[filename];
+
+      if (!sourceFile) {
+        throw new Error(`Entry not found: ${id}`);
+      }
+
+      const updatedResponse = await this.octokit.gists.update({
+        gist_id: gistId,
+        files: {
+          [data.name]: { content: sourceFile.content || '' },
+          [filename]: null,
+        } as any,
+      });
+
+      const updatedGist = updatedResponse.data as unknown as Gist;
+      const renamed = updatedGist.files[data.name];
+      if (!renamed) {
+        throw new Error(`Rename failed: ${filename} -> ${data.name}`);
+      }
+      return this.fileToEntry(updatedGist, renamed);
+    }
+
     const response = await this.octokit.gists.update({
-      gist_id: id,
+      gist_id: gistId,
       description: data.name,
     });
 
@@ -136,12 +243,41 @@ export class GitHubGistProvider implements StorageProvider {
   }
 
   async deleteEntry(id: string): Promise<void> {
-    await this.octokit.gists.delete({ gist_id: id });
+    const { gistId, filename } = this.splitPath(id);
+    if (!gistId) {
+      throw new Error('Entry id is required');
+    }
+
+    if (filename) {
+      await this.octokit.gists.update({
+        gist_id: gistId,
+        files: {
+          [filename]: null,
+        } as any,
+      });
+      return;
+    }
+
+    await this.octokit.gists.delete({ gist_id: gistId });
   }
 
   async readContent(id: string): Promise<StorageContent> {
-    const response = await this.octokit.gists.get({ gist_id: id });
+    const { gistId, filename } = this.splitPath(id);
+    if (!gistId) {
+      throw new Error('Entry id is required');
+    }
+
+    const response = await this.octokit.gists.get({ gist_id: gistId });
     const gist = response.data as unknown as Gist;
+
+    if (filename) {
+      const file = gist.files[filename];
+      if (!file) {
+        throw new Error(`Entry not found: ${id}`);
+      }
+      return { content: file.content || '', encoding: 'utf-8' };
+    }
+
     const files = Object.values(gist.files);
 
     if (files.length === 0) {
@@ -161,18 +297,31 @@ export class GitHubGistProvider implements StorageProvider {
   }
 
   async writeContent(id: string, content: string): Promise<StorageEntry> {
-    const response = await this.octokit.gists.get({ gist_id: id });
+    const { gistId, filename } = this.splitPath(id);
+    if (!gistId) {
+      throw new Error('Entry id is required');
+    }
+
+    const response = await this.octokit.gists.get({ gist_id: gistId });
     const gist = response.data as unknown as Gist;
-    const files = Object.keys(gist.files);
-    const filename = files[0] || 'untitled.txt';
+    const targetFilename = filename || Object.keys(gist.files)[0] || 'untitled.txt';
 
     const updatedResponse = await this.octokit.gists.update({
-      gist_id: id,
+      gist_id: gistId,
       files: {
-        [filename]: { content },
+        [targetFilename]: { content },
       },
     });
 
-    return this.gistToEntry(updatedResponse.data as unknown as Gist);
+    const updatedGist = updatedResponse.data as unknown as Gist;
+    if (filename) {
+      const target = updatedGist.files[targetFilename];
+      if (!target) {
+        throw new Error(`Entry not found: ${id}`);
+      }
+      return this.fileToEntry(updatedGist, target);
+    }
+
+    return this.gistToEntry(updatedGist);
   }
 }

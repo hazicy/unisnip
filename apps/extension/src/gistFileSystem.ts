@@ -1,15 +1,16 @@
 import * as vscode from 'vscode';
+import type { StorageEntry, StorageService } from '@gisthub/core';
 import type { StorageServiceManager } from './services/storageManager';
 import { parseUri } from './utils';
 
 export class GistFileSystemProvider implements vscode.FileSystemProvider {
-  private readonly eventEmitter = new vscode.EventEmitter<
+  private readonly changeEmitter = new vscode.EventEmitter<
     vscode.FileChangeEvent[]
   >();
   private readonly manager: StorageServiceManager;
 
   public readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> =
-    this.eventEmitter.event;
+    this.changeEmitter.event;
 
   constructor(provider: StorageServiceManager) {
     this.manager = provider;
@@ -22,38 +23,53 @@ export class GistFileSystemProvider implements vscode.FileSystemProvider {
       readonly excludes: readonly string[];
     },
   ): vscode.Disposable {
-    return {
-      dispose: () => {},
-    };
+    return new vscode.Disposable(() => undefined);
   }
 
-  stat(_uri: vscode.Uri): vscode.FileStat | Thenable<vscode.FileStat> {
-    return {
-      type: vscode.FileType.File,
-      ctime: 0,
-      mtime: Date.now(),
-      size: 0,
-    };
+  async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
+    const { service, storagePath } = this.resolveTarget(uri);
+
+    try {
+      const entry = await service.getEntry(storagePath);
+      return this.toFileStat(entry);
+    } catch (error) {
+      throw vscode.FileSystemError.FileNotFound(uri);
+    }
   }
 
-  readDirectory(
-    _uri: vscode.Uri,
-  ): [string, vscode.FileType][] | Thenable<[string, vscode.FileType][]> {
-    return [];
+  async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
+    const { service, storagePath } = this.resolveTarget(uri);
+
+    try {
+      const entries = await service.list(storagePath);
+      return entries
+        .filter((entry) => entry.path !== storagePath)
+        .map((entry) => [
+          entry.name || entry.path.split('/').pop() || entry.path,
+          this.toFileType(entry.type),
+        ]);
+    } catch (error) {
+      throw vscode.FileSystemError.FileNotFound(uri);
+    }
   }
 
-  createDirectory(_uri: vscode.Uri): void | Thenable<void> {}
+  async createDirectory(uri: vscode.Uri): Promise<void> {
+    const { service, storagePath } = this.resolveTarget(uri);
+
+    await service.createEntry({
+      path: storagePath,
+      name: storagePath.split('/').pop() || storagePath,
+      type: 'folder',
+    });
+
+    this.notifyFileChanged(uri, vscode.FileChangeType.Created);
+  }
 
   async readFile(uri: vscode.Uri): Promise<Uint8Array> {
+    const { service, storagePath } = this.resolveTarget(uri);
+
     try {
-      const { storagePath, providerId } = parseUri(uri);
-      const provider = this.manager.getService(providerId);
-
-      if (!provider) {
-        throw vscode.FileSystemError.FileNotFound(uri);
-      }
-
-      const content = await provider.readContent(storagePath);
+      const content = await service.readContent(storagePath);
 
       return new TextEncoder().encode(content.content || '');
     } catch (e) {
@@ -69,41 +85,39 @@ export class GistFileSystemProvider implements vscode.FileSystemProvider {
     content: Uint8Array,
     options: { readonly create: boolean; readonly overwrite: boolean },
   ): Promise<void> {
-    const { storagePath, providerId } = parseUri(uri);
-    const provider = this.manager.getService(providerId);
+    const { service, storagePath } = this.resolveTarget(uri);
     const contentStr = new TextDecoder().decode(content);
+    const existingEntry = await this.safeGetEntry(service, storagePath);
 
-    if (!provider) {
-      throw vscode.FileSystemError.FileNotFound(uri);
-    }
+    if (existingEntry) {
+      if (!options.overwrite) {
+        throw vscode.FileSystemError.FileExists(uri);
+      }
 
-    if (options.create && !options.overwrite) {
-      await provider.createEntry({
-        path: storagePath,
-        name: storagePath.split('/').pop() || storagePath,
-        type: 'file',
-        metadata: { content: contentStr },
-      });
+      await service.writeContent(storagePath, contentStr);
+      this.notifyFileChanged(uri, vscode.FileChangeType.Changed);
       return;
     }
 
-    await provider.writeContent(storagePath, contentStr);
-    this.notifyFileChanged(uri, vscode.FileChangeType.Changed);
+    if (!options.create) {
+      throw vscode.FileSystemError.FileNotFound(uri);
+    }
+
+    await service.createEntry({
+      path: storagePath,
+      name: storagePath.split('/').pop() || storagePath,
+      type: 'file',
+      metadata: { content: contentStr },
+    });
+    this.notifyFileChanged(uri, vscode.FileChangeType.Created);
   }
 
   async delete(
     uri: vscode.Uri,
     _options: { readonly recursive: boolean },
   ): Promise<void> {
-    const { storagePath, providerId } = parseUri(uri);
-
-    const provider = this.manager.getService(providerId);
-
-    if (!provider) {
-      throw vscode.FileSystemError.FileNotFound(uri);
-    }
-
-    await provider.deleteEntry(storagePath);
+    const { service, storagePath } = this.resolveTarget(uri);
+    await service.deleteEntry(storagePath);
 
     this.notifyFileChanged(uri, vscode.FileChangeType.Deleted);
   }
@@ -114,24 +128,29 @@ export class GistFileSystemProvider implements vscode.FileSystemProvider {
     _options: { readonly overwrite: boolean },
   ): Promise<void> {
     const { storagePath: oldPath, providerId } = parseUri(oldUri);
-    const provider = this.manager.getService(providerId);
+    const { storagePath: newPath, providerId: newProviderId } = parseUri(newUri);
 
-    if (!provider) {
+    if (providerId !== newProviderId) {
+      throw vscode.FileSystemError.NoPermissions(
+        'Cannot rename across providers',
+      );
+    }
+
+    const service = this.manager.getService(providerId);
+    if (!service) {
       throw vscode.FileSystemError.FileNotFound(oldUri);
     }
 
-    const { storagePath: newPath } = parseUri(newUri);
+    const content = await service.readContent(oldPath);
 
-    const content = await provider.readContent(oldPath);
-
-    await provider.createEntry({
+    await service.createEntry({
       path: newPath,
       name: newPath.split('/').pop() || newPath,
       type: 'file',
       metadata: { content: content.content },
     });
 
-    await provider.deleteEntry(oldPath);
+    await service.deleteEntry(oldPath);
 
     this.notifyFileChanged(oldUri, vscode.FileChangeType.Deleted);
     this.notifyFileChanged(newUri, vscode.FileChangeType.Created);
@@ -143,17 +162,21 @@ export class GistFileSystemProvider implements vscode.FileSystemProvider {
     _options: { readonly overwrite: boolean },
   ): Promise<void> {
     const { storagePath: sourcePath, providerId } = parseUri(source);
-    const provider = this.manager.getService(providerId);
+    const { storagePath: destPath, providerId: destProviderId } =
+      parseUri(destination);
 
-    if (!provider) {
+    if (providerId !== destProviderId) {
+      throw vscode.FileSystemError.NoPermissions('Cannot copy across providers');
+    }
+
+    const service = this.manager.getService(providerId);
+    if (!service) {
       throw vscode.FileSystemError.FileNotFound(source);
     }
 
-    const { storagePath: destPath } = parseUri(destination);
+    const content = await service.readContent(sourcePath);
 
-    const content = await provider.readContent(sourcePath);
-
-    await provider.createEntry({
+    await service.createEntry({
       path: destPath,
       name: destPath.split('/').pop() || destPath,
       type: 'file',
@@ -167,6 +190,45 @@ export class GistFileSystemProvider implements vscode.FileSystemProvider {
     uri: vscode.Uri,
     type: vscode.FileChangeType,
   ): void {
-    this.eventEmitter.fire([{ uri, type }]);
+    this.changeEmitter.fire([{ uri, type }]);
+  }
+
+  private resolveTarget(uri: vscode.Uri): {
+    service: StorageService;
+    providerId: string;
+    storagePath: string;
+  } {
+    const { storagePath, providerId } = parseUri(uri);
+    const service = this.manager.getService(providerId);
+
+    if (!service) {
+      throw vscode.FileSystemError.FileNotFound(uri);
+    }
+
+    return { service, providerId, storagePath };
+  }
+
+  private async safeGetEntry(
+    service: StorageService,
+    path: string,
+  ): Promise<StorageEntry | null> {
+    try {
+      return await service.getEntry(path);
+    } catch {
+      return null;
+    }
+  }
+
+  private toFileType(type: StorageEntry['type']): vscode.FileType {
+    return type === 'folder' ? vscode.FileType.Directory : vscode.FileType.File;
+  }
+
+  private toFileStat(entry: StorageEntry): vscode.FileStat {
+    return {
+      type: this.toFileType(entry.type),
+      ctime: entry.createdAt ? new Date(entry.createdAt).getTime() : 0,
+      mtime: entry.updatedAt ? new Date(entry.updatedAt).getTime() : Date.now(),
+      size: entry.size ?? 0,
+    };
   }
 }
