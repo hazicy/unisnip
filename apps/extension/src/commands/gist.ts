@@ -1,45 +1,51 @@
 import * as vscode from 'vscode';
 import { SCHEMA } from '../extension';
-import { GistServiceManager } from '../services/gist/gistManager';
-import { GistProviderEnum, type Gist } from '@gisthub/core';
+import { StorageServiceManager } from '../services/storageManager';
+import { StorageType } from '@gisthub/core';
 import type { GistNode } from '../views/tree/treeItem';
 import { ZERO_WIDTH_SPACE } from '../constants';
 
-export async function openGist(
-  id: string,
-  filename: string,
-  providerId?: string,
-): Promise<void> {
-  const gistUri = vscode.Uri.from({
+function buildUri(providerId: string, storagePath: string): vscode.Uri {
+  const filename = storagePath.split('/').pop() || storagePath;
+  return vscode.Uri.from({
     scheme: SCHEMA,
     authority: providerId,
     path: `/${filename}`,
-    query: `id=${id}`,
+    query: `path=${encodeURIComponent(storagePath)}`,
   });
+}
 
-  vscode.commands.executeCommand('vscode.open', gistUri, {
+export async function openGist(
+  storagePath: string,
+  providerId?: string,
+): Promise<void> {
+  if (!providerId) return;
+
+  const uri = buildUri(providerId, storagePath);
+
+  await vscode.commands.executeCommand('vscode.open', uri, {
     preview: true,
   });
 }
 
 export async function renameGist(
-  { id, label, providerId }: GistNode,
+  item: GistNode,
   context: vscode.ExtensionContext,
   refreshCallback?: () => void,
 ): Promise<void> {
-  if (!id || !providerId) {
+  if (!item.providerId) {
     return;
   }
 
-  const manager = GistServiceManager.getInstance(context);
-  const service = manager.getService(providerId);
+  const manager = StorageServiceManager.getInstance(context);
+  const service = manager.getService(item.providerId);
 
   if (!service) {
     vscode.window.showErrorMessage(vscode.l10n.t('errorRenamingFile'));
     return;
   }
-  const currentName = typeof label === 'string' ? label : label?.label || '';
 
+  const currentName = item.entry.name;
   const newName = await vscode.window.showInputBox({
     value: currentName,
     prompt: vscode.l10n.t('enterNewName'),
@@ -50,14 +56,21 @@ export async function renameGist(
   }
 
   try {
-    await service.updateGist(id, {
-      files: {
-        [currentName]: null,
-        [newName]: {
-          content: '',
-        },
-      },
-    });
+    if (item.contextValue === 'gistFolder') {
+      await service.updateEntry(item.entry.path, { name: newName });
+    } else {
+      const parentPath = item.entry.path.split('/').slice(0, -1).join('/');
+      const newPath = parentPath ? `${parentPath}/${newName}` : newName;
+      const content = await service.readContent(item.entry.path);
+
+      await service.createEntry({
+        path: newPath,
+        name: newName,
+        type: 'file',
+        metadata: { content: content.content },
+      });
+      await service.deleteEntry(item.entry.path);
+    }
 
     vscode.window.showInformationMessage(vscode.l10n.t('fileRenamed'));
     refreshCallback?.();
@@ -67,16 +80,14 @@ export async function renameGist(
 }
 
 export async function deleteFileCommand(
-  { id, providerId, resourceUri }: GistNode,
-  context: vscode.ExtensionContext,
+  { providerId, resourceUri }: GistNode,
+  _context: vscode.ExtensionContext,
   refreshCallback?: () => void,
 ): Promise<void> {
-  if (!id || !providerId) {
+  if (!providerId) {
     return;
   }
 
-  const manager = GistServiceManager.getInstance(context);
-  const service = manager.getService(providerId);
   const confirm = await vscode.window.showWarningMessage(
     vscode.l10n.t('confirmDelete'),
     { modal: true },
@@ -107,7 +118,7 @@ export async function createGistCommand(
   item?: GistNode,
 ): Promise<void> {
   try {
-    const manager = GistServiceManager.getInstance(context);
+    const manager = StorageServiceManager.getInstance(context);
     const providers = manager.getAllServices();
 
     if (providers.length === 0) {
@@ -117,20 +128,15 @@ export async function createGistCommand(
 
     let providerId: string;
 
-    // 如果是从 folder 右键创建，使用该 folder 的 provider
     if (item?.providerId) {
       providerId = item.providerId;
-    }
-    // 如果只有一个 provider，直接使用
-    else if (providers.length === 1) {
+    } else if (providers.length === 1) {
       providerId = providers[0][0];
-    }
-    // 如果有多个 provider，让用户选择
-    else {
+    } else {
       const selected = await vscode.window.showQuickPick(
         providers.map(([id, service]) => ({
           label: id,
-          description: service.getProviderName(),
+          description: `${service.getType()}:${service.getName()}`,
         })),
         {
           placeHolder: vscode.l10n.t('selectProvider'),
@@ -144,39 +150,39 @@ export async function createGistCommand(
       providerId = selected.label;
     }
 
-    const description = await vscode.window.showInputBox({
-      prompt: vscode.l10n.t('enterGistDescription'),
-      placeHolder: vscode.l10n.t('gistDescriptionPlaceholder'),
-    });
-
-    if (!description) {
-      return;
-    }
-
-    const filename = await vscode.window.showInputBox({
-      prompt: '文件名',
-    });
-
-    if (!filename) {
-      return;
-    }
-
     const service = manager.getService(providerId);
-
     if (!service) {
       vscode.window.showErrorMessage(vscode.l10n.t('errorCreatingGist'));
       return;
     }
 
-    await service.createGist({
-      description,
-      public: false,
-      files: {
-        [filename.trim()]: {
-          content: `${ZERO_WIDTH_SPACE}`,
-        },
-      },
+    const name = await vscode.window.showInputBox({
+      prompt: vscode.l10n.t('enterGistDescription'),
+      placeHolder: vscode.l10n.t('gistDescriptionPlaceholder'),
     });
+
+    if (!name) return;
+
+    if (service.getType() === StorageType.Gist) {
+      const filename = await vscode.window.showInputBox({ prompt: '文件名' });
+      if (!filename) return;
+
+      await service.createEntry({
+        name,
+        type: 'folder',
+        metadata: {
+          public: false,
+          defaultFilename: filename.trim(),
+          defaultContent: `${ZERO_WIDTH_SPACE}`,
+        },
+      });
+    } else {
+      await service.createEntry({
+        path: name,
+        name,
+        type: 'folder',
+      });
+    }
 
     vscode.window.showInformationMessage(vscode.l10n.t('gistCreated'));
     refreshCallback?.();
@@ -186,16 +192,16 @@ export async function createGistCommand(
 }
 
 export async function createFileCommand(
-  { id, providerId }: GistNode,
+  item: GistNode,
   context: vscode.ExtensionContext,
   refreshCallback?: () => void,
 ): Promise<void> {
-  if (!id || !providerId) {
+  if (!item.providerId) {
     return;
   }
 
-  const manager = GistServiceManager.getInstance(context);
-  const service = manager.getService(providerId);
+  const manager = StorageServiceManager.getInstance(context);
+  const service = manager.getService(item.providerId);
 
   if (!service) {
     vscode.window.showErrorMessage(vscode.l10n.t('errorCreatingFile'));
@@ -212,11 +218,15 @@ export async function createFileCommand(
   }
 
   try {
-    await service.updateGist(id, {
-      files: {
-        [filename]: {
-          content: `${ZERO_WIDTH_SPACE}`,
-        },
+    const basePath = item.entry.path;
+    const path = `${basePath}/${filename}`.replace(/\/+/g, '/');
+
+    await service.createEntry({
+      path,
+      name: filename,
+      type: 'file',
+      metadata: {
+        content: `${ZERO_WIDTH_SPACE}`,
       },
     });
 
@@ -228,15 +238,10 @@ export async function createFileCommand(
 }
 
 export async function deleteGistCommand(
-  { id, label, providerId, resourceUri }: GistNode,
-  context: vscode.ExtensionContext,
+  { label, resourceUri }: GistNode,
+  _context: vscode.ExtensionContext,
   refreshCallback?: () => void,
 ): Promise<void> {
-  if (!id || !providerId) {
-    return;
-  }
-
-  const manager = GistServiceManager.getInstance(context);
   const gistName = typeof label === 'string' ? label : label?.label || '';
   const confirm = await vscode.window.showWarningMessage(
     vscode.l10n.t('confirmDeleteGist', gistName),
@@ -262,92 +267,33 @@ export async function deleteGistCommand(
   }
 }
 
-/**
- * Star 一个 Gist
- */
-export async function starGistCommand(
-  { id, providerId }: GistNode,
-  context: vscode.ExtensionContext,
-  refreshCallback?: () => void,
-): Promise<void> {
-  if (!id || !providerId) {
-    return;
-  }
-
-  const manager = GistServiceManager.getInstance(context);
-  const service = manager.getService(providerId);
-
-  if (!service) {
-    vscode.window.showErrorMessage(vscode.l10n.t('errorStarringGist'));
-    return;
-  }
-
-  try {
-    await service.starGist(id);
-    vscode.window.showInformationMessage(vscode.l10n.t('gistStarred'));
-    refreshCallback?.();
-  } catch (error) {
-    vscode.window.showErrorMessage(vscode.l10n.t('errorStarringGist'));
-  }
-}
-
-/**
- * Unstar 一个 Gist
- */
-export async function unstarGistCommand(
-  { id, providerId }: GistNode,
-  context: vscode.ExtensionContext,
-  refreshCallback?: () => void,
-): Promise<void> {
-  if (!id || !providerId) {
-    return;
-  }
-
-  const manager = GistServiceManager.getInstance(context);
-  const service = manager.getService(providerId);
-
-  if (!service) {
-    vscode.window.showErrorMessage(vscode.l10n.t('errorUnstarringGist'));
-    return;
-  }
-
-  try {
-    await service.unstarGist(id);
-    vscode.window.showInformationMessage(vscode.l10n.t('gistUnstarred'));
-    refreshCallback?.();
-  } catch (error) {
-    vscode.window.showErrorMessage(vscode.l10n.t('errorUnstarringGist'));
-  }
-}
-
 export async function openInExternal(item: GistNode): Promise<void> {
-  // GistFileNode 没有 gist 属性，只能从 GistFolderNode 获取
-  if (!('gist' in item) || !item.gist?.id) {
+  if (!item.providerId || item.contextValue !== 'gistFolder') {
     return;
   }
 
-  const gistId = item.gist.id;
-  let url: string;
+  const gistId = item.entry.path;
+  const providerId = item.providerId.toLowerCase();
+  let url: string | undefined;
 
-  // 判断是 GitHub 还是 Gitee
-  if (item.providerId.toLowerCase().includes('gitee')) {
+  if (providerId.includes('gitee')) {
     url = `https://gitee.com/gists/${gistId}`;
-  } else {
+  } else if (providerId.includes('github')) {
     url = `https://gist.github.com/${gistId}`;
+  } else {
+    vscode.window.showInformationMessage('当前存储类型不支持外部 Gist 链接');
+    return;
   }
 
   await vscode.env.openExternal(vscode.Uri.parse(url));
 }
 
-/**
- * 上传文件到 Gist
- */
 export async function uploadFileCommand(
   context: vscode.ExtensionContext,
   refreshCallback?: () => void,
 ): Promise<void> {
   try {
-    const manager = GistServiceManager.getInstance(context);
+    const manager = StorageServiceManager.getInstance(context);
     const providers = manager.getAllServices();
 
     if (providers.length === 0) {
@@ -355,7 +301,6 @@ export async function uploadFileCommand(
       return;
     }
 
-    // 让用户选择要上传的文件
     const fileUris = await vscode.window.showOpenDialog({
       canSelectMany: false,
       openLabel: vscode.l10n.t('selectFileToUpload'),
@@ -371,11 +316,9 @@ export async function uploadFileCommand(
     const fileUri = fileUris[0];
     const fileName = fileUri.path.split(/[/\\]/).pop() || 'untitled';
 
-    // 读取文件内容
     const fileContent = await vscode.workspace.fs.readFile(fileUri);
     const content = new TextDecoder().decode(fileContent);
 
-    // 选择目标 Provider
     let providerId: string;
     if (providers.length === 1) {
       providerId = providers[0][0];
@@ -383,7 +326,7 @@ export async function uploadFileCommand(
       const selected = await vscode.window.showQuickPick(
         providers.map(([id, service]) => ({
           label: id,
-          description: service.getProviderName(),
+          description: `${service.getType()}:${service.getName()}`,
         })),
         {
           placeHolder: vscode.l10n.t('selectProvider'),
@@ -402,98 +345,110 @@ export async function uploadFileCommand(
       return;
     }
 
-    // 验证文件大小
     const validation = service.validateFileSize(content, fileName);
     if (!validation.valid) {
       const maxSize = service.getFileSizeLimit().maxFileSize / (1024 * 1024);
-      const providerName =
-        service.getProviderName() === GistProviderEnum.Gitee
-          ? 'Gitee'
-          : 'GitHub';
       vscode.window.showErrorMessage(
         vscode.l10n.t('fileTooLargeMessage', {
           maxSize: maxSize.toFixed(0),
-          provider: providerName,
+          provider: service.getName(),
         }),
       );
       return;
     }
 
-    // 询问是创建新 Gist 还是上传到现有 Gist
-    const choice = await vscode.window.showQuickPick(
-      [
-        {
-          label: vscode.l10n.t('createGistForFile'),
-          value: 'new',
-        },
-        {
-          label: vscode.l10n.t('uploadToExistingGist'),
-          value: 'existing',
-        },
-      ],
-      {
-        placeHolder: vscode.l10n.t('selectProvider'),
-      },
-    );
-
-    if (!choice) {
-      return;
-    }
-
-    if (choice.value === 'new') {
-      // 创建新 Gist
-      const description = await vscode.window.showInputBox({
-        prompt: vscode.l10n.t('enterGistDescription'),
-        placeHolder: vscode.l10n.t('gistDescriptionPlaceholder'),
-        value: `Uploaded from ${fileName}`,
-      });
-
-      if (!description) {
-        return;
-      }
-
-      await service.createGist({
-        description,
-        public: false,
-        files: {
-          [fileName]: {
-            content,
+    if (service.getType() === StorageType.Gist) {
+      const choice = await vscode.window.showQuickPick(
+        [
+          {
+            label: vscode.l10n.t('createGistForFile'),
+            value: 'new',
           },
-        },
-      });
-
-      vscode.window.showInformationMessage(vscode.l10n.t('fileUploaded'));
-      refreshCallback?.();
-    } else {
-      // 上传到现有 Gist - 获取用户的所有 Gist
-      const gists = await service.getGists();
-
-      if (gists.length === 0) {
-        vscode.window.showInformationMessage(
-          vscode.l10n.t('noActiveProviders'),
-        );
-        return;
-      }
-
-      const selectedGist = await vscode.window.showQuickPick(
-        gists.map((gist: Gist) => ({
-          label: gist.description || vscode.l10n.t('unnamedGist'),
-          description: gist.id,
-          gist,
-        })),
+          {
+            label: vscode.l10n.t('uploadToExistingGist'),
+            value: 'existing',
+          },
+        ],
         {
           placeHolder: vscode.l10n.t('selectProvider'),
         },
       );
 
-      if (!selectedGist) {
+      if (!choice) {
         return;
       }
 
-      await service.updateGistContent(selectedGist.gist.id, fileName, content);
-      vscode.window.showInformationMessage(vscode.l10n.t('fileUploaded'));
-      refreshCallback?.();
+      if (choice.value === 'new') {
+        const description = await vscode.window.showInputBox({
+          prompt: vscode.l10n.t('enterGistDescription'),
+          placeHolder: vscode.l10n.t('gistDescriptionPlaceholder'),
+          value: `Uploaded from ${fileName}`,
+        });
+
+        if (!description) {
+          return;
+        }
+
+        await service.createEntry({
+          name: description,
+          type: 'folder',
+          metadata: {
+            public: false,
+            defaultFilename: fileName,
+            defaultContent: content,
+          },
+        });
+      } else {
+        const entries = await service.list('');
+        const folders = entries.filter((entry) => entry.type === 'folder');
+
+        if (folders.length === 0) {
+          vscode.window.showInformationMessage(
+            vscode.l10n.t('noActiveProviders'),
+          );
+          return;
+        }
+
+        const selectedFolder = await vscode.window.showQuickPick(
+          folders.map((entry) => ({
+            label: entry.name || entry.path,
+            description: entry.path,
+            entry,
+          })),
+          {
+            placeHolder: vscode.l10n.t('selectProvider'),
+          },
+        );
+
+        if (!selectedFolder) {
+          return;
+        }
+
+        await service.createEntry({
+          path: `${selectedFolder.entry.path}/${fileName}`,
+          name: fileName,
+          type: 'file',
+          metadata: { content },
+        });
+      }
+    } else {
+      const targetDir = await vscode.window.showInputBox({
+        prompt: '目标目录（可选）',
+        placeHolder: 'folder/subfolder',
+      });
+
+      const targetPath = targetDir ? `${targetDir}/${fileName}` : fileName;
+
+      await service.createEntry({
+        path: targetPath,
+        name: fileName,
+        type: 'file',
+        metadata: { content },
+      });
     }
+
+    vscode.window.showInformationMessage(vscode.l10n.t('fileUploaded'));
+    refreshCallback?.();
   } catch (error) {
     vscode.window.showErrorMessage(vscode.l10n.t('errorUploadingFile'));
   }

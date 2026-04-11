@@ -1,47 +1,50 @@
 import * as vscode from 'vscode';
-import type { Gist } from '../../providers/gist/types';
+import type { StorageEntry } from '@gisthub/core';
 import { SCHEMA } from '../../extension';
+
+function encodePath(path: string): string {
+  return encodeURIComponent(path);
+}
 
 export class GistFolderNode extends vscode.TreeItem {
   constructor(
-    public readonly gist: Gist,
+    public readonly entry: StorageEntry,
     public readonly providerId: string,
   ) {
     super(
-      gist.description || vscode.l10n.t('unnamedGist'),
+      entry.name || vscode.l10n.t('unnamedGist'),
       vscode.TreeItemCollapsibleState.Collapsed,
     );
-    this.id = gist.id;
+    this.id = `${providerId}:${entry.path}`;
     this.iconPath = new vscode.ThemeIcon('note');
     this.contextValue = 'gistFolder';
     this.resourceUri = vscode.Uri.from({
       scheme: SCHEMA,
       authority: providerId,
-      query: `id=${gist.id}`,
+      query: `path=${encodePath(entry.path)}`,
     });
   }
 }
 
 export class GistFileNode extends vscode.TreeItem {
   constructor(
-    public readonly filename: string,
-    public readonly gistId: string,
+    public readonly entry: StorageEntry,
     public readonly providerId: string,
   ) {
-    super(filename, vscode.TreeItemCollapsibleState.None);
-    this.id = `${gistId}-${filename}`;
+    super(entry.name, vscode.TreeItemCollapsibleState.None);
+    this.id = `${providerId}:${entry.path}`;
     this.iconPath = vscode.ThemeIcon.File;
     this.contextValue = 'gistItem';
     this.resourceUri = vscode.Uri.from({
       scheme: SCHEMA,
       authority: providerId,
-      path: `/${filename}`,
-      query: `id=${gistId}`,
+      path: `/${entry.name}`,
+      query: `path=${encodePath(entry.path)}`,
     });
     this.command = {
       command: 'gisthub.openGist',
       title: vscode.l10n.t('openGist'),
-      arguments: [gistId, filename, providerId],
+      arguments: [entry.path, providerId],
     };
   }
 }

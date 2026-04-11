@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import type { GistServiceManager } from '../../services/gist/gistManager';
+import type { StorageEntry } from '@gisthub/core';
+import type { StorageServiceManager } from '../../services/storageManager';
 import {
   EmptyNode,
   ErrorNode,
@@ -15,7 +16,7 @@ export class GistTreeProvider implements vscode.TreeDataProvider<GistTreeItem> {
 
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-  constructor(private readonly gistManager: GistServiceManager) {}
+  constructor(private readonly gistManager: StorageServiceManager) {}
 
   dispose(): void {
     this._onDidChangeTreeData.dispose();
@@ -28,11 +29,11 @@ export class GistTreeProvider implements vscode.TreeDataProvider<GistTreeItem> {
   async getChildren(element?: GistTreeItem): Promise<GistTreeItem[]> {
     try {
       if (!element) {
-        return await this.getAllGistItems();
+        return await this.getRootItems();
       }
 
       if (element instanceof GistFolderNode) {
-        return await this.getFileItems(element);
+        return await this.getChildrenForFolder(element);
       }
 
       return [];
@@ -41,37 +42,49 @@ export class GistTreeProvider implements vscode.TreeDataProvider<GistTreeItem> {
     }
   }
 
-  private async getAllGistItems(): Promise<GistTreeItem[]> {
+  private async getRootItems(): Promise<GistTreeItem[]> {
     const providers = this.gistManager.getAllServices();
 
     if (providers.length === 0) {
       return [new EmptyNode(vscode.l10n.t('noActiveProviders'))];
     }
 
-    const gistsResults = await Promise.all(
-      providers.map(async ([providerId, provider]) => {
+    const results = await Promise.all(
+      providers.map(async ([providerId, service]) => {
         try {
-          const gists = await provider.getGists();
-          return gists.map((gist) => new GistFolderNode(gist, providerId));
+          const entries = await service.list('');
+          return this.mapEntries(entries, providerId);
         } catch (error) {
-          console.error(`Error fetching gists from ${providerId}:`, error);
+          console.error(`Error fetching entries from ${providerId}:`, error);
           return [];
         }
       }),
     );
 
-    return gistsResults.flat();
+    const items = results.flat();
+    return items.length > 0
+      ? items
+      : [new EmptyNode(vscode.l10n.t('noActiveProviders'))];
   }
 
-  private async getFileItems(element: GistFolderNode): Promise<GistTreeItem[]> {
+  private async getChildrenForFolder(
+    element: GistFolderNode,
+  ): Promise<GistTreeItem[]> {
     const service = this.gistManager.getService(element.providerId);
     if (!service) return [];
 
-    const gist = await service.getGist(element.gist.id);
-    if (!gist) return [];
+    const entries = await service.list(element.entry.path);
+    return this.mapEntries(entries, element.providerId);
+  }
 
-    return Object.keys(gist.files ?? {}).map(
-      (filename) => new GistFileNode(filename, gist.id, element.providerId),
+  private mapEntries(
+    entries: StorageEntry[],
+    providerId: string,
+  ): GistTreeItem[] {
+    return entries.map((entry) =>
+      entry.type === 'folder'
+        ? new GistFolderNode(entry, providerId)
+        : new GistFileNode(entry, providerId),
     );
   }
 

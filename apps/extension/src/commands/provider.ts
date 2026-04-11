@@ -1,37 +1,142 @@
 import * as vscode from 'vscode';
-import {
-  GistProviderEnum as GistProviderEnum,
-  type ProviderConfig,
-} from '../providers/gist/types';
-import { createProvider } from '../services/gist/providerFactory';
-import {
-  getGiteeAccessToken,
-  getGithubAccessToken,
-} from '../services/authService';
-import type { GistServiceManager } from '../services/gist/gistManager';
+import { StorageType, GistSubType, type StorageConfig } from '@gisthub/core';
+import type { ProviderConfig } from '../providers/gist/types';
+import { createProvider } from '../services/providerFactory';
+import type { StorageServiceManager } from '../services/storageManager';
 
 const PROVIDER_OPTIONS = [
-  { label: '$(mark-github) Add GitHub', value: GistProviderEnum.GitHub },
-  { label: '$(cloud) Add Gitee', value: GistProviderEnum.Gitee },
+  {
+    label: '$(mark-github) Add GitHub Gist',
+    value: { type: StorageType.Gist, subType: GistSubType.GitHub } as const,
+  },
+  {
+    label: '$(cloud) Add Gitee Gist',
+    value: { type: StorageType.Gist, subType: GistSubType.Gitee } as const,
+  },
+  { label: '$(database) Add S3', value: { type: StorageType.S3 } as const },
+  {
+    label: '$(server-environment) Add WebDAV',
+    value: { type: StorageType.WebDAV } as const,
+  },
 ] as const;
 
-const PROVIDER_TOKEN_GETTERS: Record<GistProviderEnum, () => Promise<string>> =
-  {
-    [GistProviderEnum.GitHub]: getGithubAccessToken,
-    [GistProviderEnum.Gitee]: getGiteeAccessToken,
-  };
-
-const PROVIDER_ICONS: Record<GistProviderEnum, string> = {
-  [GistProviderEnum.GitHub]: '$(mark-github)',
-  [GistProviderEnum.Gitee]: '$(cloud)',
-};
-
 function getProviderIcon(config: ProviderConfig): string {
-  return PROVIDER_ICONS[config.provider as GistProviderEnum] ?? '$(plug)';
+  if (config.type === StorageType.Gist) {
+    if (config.subType === GistSubType.GitHub) return '$(mark-github)';
+    if (config.subType === GistSubType.Gitee) return '$(cloud)';
+  }
+
+  if (config.type === StorageType.S3) return '$(database)';
+  if (config.type === StorageType.WebDAV) return '$(server-environment)';
+
+  return '$(plug)';
+}
+
+function getProviderDescription(config: ProviderConfig): string {
+  if (config.type === StorageType.Gist) {
+    return config.subType === GistSubType.GitHub ? 'GitHub Gist' : 'Gitee Gist';
+  }
+
+  if (config.type === StorageType.S3) {
+    return `S3 ${config.bucket ? `(${config.bucket})` : ''}`.trim();
+  }
+
+  if (config.type === StorageType.WebDAV) {
+    return `WebDAV ${config.endpoint ? `(${config.endpoint})` : ''}`.trim();
+  }
+
+  return config.type;
+}
+
+async function askText(
+  prompt: string,
+  placeHolder: string,
+  required = false,
+  password = false,
+): Promise<string | undefined> {
+  const value = await vscode.window.showInputBox({
+    prompt,
+    placeHolder,
+    password,
+    ignoreFocusOut: true,
+  });
+
+  if (required && (!value || !value.trim())) {
+    vscode.window.showErrorMessage(vscode.l10n.t('invalidGistUri'));
+    return undefined;
+  }
+
+  return value?.trim();
+}
+
+async function buildConfigFromSelection(
+  selection: (typeof PROVIDER_OPTIONS)[number]['value'],
+): Promise<StorageConfig | undefined> {
+  if (selection.type === StorageType.Gist) {
+    return {
+      type: StorageType.Gist,
+      subType: selection.subType,
+    };
+  }
+
+  if (selection.type === StorageType.S3) {
+    const bucket = await askText('S3 Bucket', 'my-bucket', true);
+    if (!bucket) return undefined;
+
+    const endpoint = await askText(
+      'S3 Endpoint (optional for AWS)',
+      'https://s3.amazonaws.com',
+    );
+    const region = await askText('S3 Region', 'us-east-1', false);
+    const accessKeyId = await askText('S3 Access Key ID', 'AKIA...', true);
+    if (!accessKeyId) return undefined;
+    const secretAccessKey = await askText(
+      'S3 Secret Access Key',
+      '******',
+      true,
+      true,
+    );
+    if (!secretAccessKey) return undefined;
+    const basePath = await askText('Base Path (optional)', 'folder/subfolder');
+
+    return {
+      type: StorageType.S3,
+      bucket,
+      endpoint: endpoint || undefined,
+      region: region || undefined,
+      accessKeyId,
+      secretAccessKey,
+      basePath: basePath || undefined,
+    };
+  }
+
+  const endpoint = await askText(
+    'WebDAV Endpoint',
+    'https://dav.example.com/remote.php/dav/files/user',
+    true,
+  );
+  if (!endpoint) return undefined;
+
+  const token = await askText(
+    'WebDAV Auth (username:password 或 Bearer token)',
+    'username:password',
+    true,
+    true,
+  );
+  if (!token) return undefined;
+
+  const basePath = await askText('Base Path (optional)', 'notes');
+
+  return {
+    type: StorageType.WebDAV,
+    endpoint,
+    token,
+    basePath: basePath || undefined,
+  };
 }
 
 export async function openProviderManager(
-  gistManager: GistServiceManager,
+  gistManager: StorageServiceManager,
   context: vscode.ExtensionContext,
   refreshCallback?: () => void,
 ): Promise<void> {
@@ -59,21 +164,26 @@ async function handleAddProvider(
 
   const alias = await vscode.window.showInputBox({
     prompt: vscode.l10n.t('enterGistName'),
-    placeHolder: pick.value === GistProviderEnum.GitHub ? 'GitHub' : 'Gitee',
+    placeHolder: 'provider-id',
   });
 
   if (alias === undefined) {
     return;
   }
 
-  const getToken = PROVIDER_TOKEN_GETTERS[pick.value];
-  const token = await getToken();
-  await createProvider(pick.value, token, context, alias);
+  const config = await buildConfigFromSelection(pick.value);
+  if (!config) return;
+
+  await createProvider(
+    { ...config, id: alias || pick.value.type },
+    context,
+    alias,
+  );
 
   refreshCallback?.();
 }
 
-type ProviderAction = 'reauthenticate' | 'delete' | 'add';
+type ProviderAction = 'reauthenticate' | 'delete';
 
 interface ProviderQuickPickItem extends vscode.QuickPickItem {
   action: ProviderAction;
@@ -83,16 +193,14 @@ interface ProviderQuickPickItem extends vscode.QuickPickItem {
 async function handleManageProviders(
   configs: ProviderConfig[],
   context: vscode.ExtensionContext,
-  gistManager: GistServiceManager,
+  gistManager: StorageServiceManager,
   refreshCallback?: () => void,
 ): Promise<void> {
-  // 第一级：选择 provider
   const providerItems = [
     ...configs.map((config) => ({
       label: `${getProviderIcon(config)} ${config.id}`,
-      description: config.enabled
-        ? '$(check) Enabled'
-        : '$(circle-slash) Disabled',
+      description: getProviderDescription(config),
+      detail: config.enabled ? '$(check) Enabled' : '$(circle-slash) Disabled',
       config,
     })),
     { label: '', kind: vscode.QuickPickItemKind.Separator, config: null },
@@ -107,16 +215,14 @@ async function handleManageProviders(
     return;
   }
 
-  // 选了 Add New Provider
   if (!selectedProvider.config) {
     await handleAddProvider(context, refreshCallback);
     return;
   }
 
-  // 第二级：选择操作
   const actionItems: ProviderQuickPickItem[] = [
     {
-      label: '$(refresh) Re-authenticate',
+      label: '$(refresh) Reconnect',
       description: selectedProvider.config.id,
       action: 'reauthenticate',
       providerId: selectedProvider.config.id,
@@ -148,16 +254,13 @@ async function handleManageProviders(
 async function executeProviderAction(
   item: ProviderQuickPickItem,
   context: vscode.ExtensionContext,
-  gistManager: GistServiceManager,
+  gistManager: StorageServiceManager,
   refreshCallback?: () => void,
 ): Promise<void> {
   switch (item.action) {
-    case 'add':
-      await handleAddProvider(context, refreshCallback);
-      break;
     case 'reauthenticate':
       if (item.providerId) {
-        await reauthenticateProvider(
+        await reconnectProvider(
           item.providerId,
           gistManager,
           context,
@@ -173,50 +276,21 @@ async function executeProviderAction(
   }
 }
 
-export async function addProvider(
-  gistManager: GistServiceManager,
-  type: GistProviderEnum,
-): Promise<void> {
-  const alias = await vscode.window.showInputBox({
-    prompt: vscode.l10n.t('enterGistName'),
-    placeHolder: type === GistProviderEnum.GitHub ? 'GitHub' : 'Gitee',
-  });
-
-  if (alias === undefined) {
-    return;
-  }
-
-  // 使用 OAuth 获取 token
-  const getToken = PROVIDER_TOKEN_GETTERS[type];
-  const token = await getToken();
-
-  await createProvider(type, token, gistManager.context, alias);
-
-  vscode.window.showInformationMessage(vscode.l10n.t('gistUpdated'));
-}
-
-async function reauthenticateProvider(
+async function reconnectProvider(
   providerId: string,
-  gistManager: GistServiceManager,
+  gistManager: StorageServiceManager,
   context: vscode.ExtensionContext,
   refreshCallback?: () => void,
 ): Promise<void> {
   const configs = gistManager.getConfig();
   const config = configs.find((c) => c.id === providerId);
 
-  if (!config || !config.provider) {
+  if (!config) {
     vscode.window.showErrorMessage('Provider configuration not found');
     return;
   }
 
-  const providerType = config.provider;
-
-  // 使用 OAuth 重新获取 token
-  const getToken = PROVIDER_TOKEN_GETTERS[providerType];
-  const token = await getToken();
-
-  // 重新创建 provider
-  await createProvider(providerType, token, context, providerId);
+  await createProvider(config, context, providerId);
 
   refreshCallback?.();
 
@@ -225,7 +299,7 @@ async function reauthenticateProvider(
 
 async function deleteProvider(
   providerId: string,
-  gistManager: GistServiceManager,
+  gistManager: StorageServiceManager,
 ): Promise<void> {
   const confirm = await vscode.window.showWarningMessage(
     vscode.l10n.t('confirmDelete', providerId),
@@ -237,7 +311,7 @@ async function deleteProvider(
     return;
   }
 
-  gistManager.removeService(providerId);
+  await gistManager.removeService(providerId);
 
   vscode.window.showInformationMessage(
     vscode.l10n.t('providerDeleted', providerId),

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { GistServiceManager } from '../services/gist/gistManager';
+import type { StorageServiceManager } from '../services/storageManager';
 import {
   createFileCommand,
   createGistCommand,
@@ -8,15 +8,13 @@ import {
   openGist,
   openInExternal,
   renameGist,
-  starGistCommand,
-  unstarGistCommand,
   uploadFileCommand,
 } from './gist';
 import { openProviderManager } from './provider';
 import type { GistNode } from '../views/tree/treeItem';
 
 export function registerAllCommands(
-  gistManager: GistServiceManager,
+  gistManager: StorageServiceManager,
   refreshCallback: () => void,
   context: vscode.ExtensionContext,
 ): vscode.Disposable[] {
@@ -44,12 +42,6 @@ export function registerAllCommands(
     vscode.commands.registerCommand(
       'gisthub.openInExternal',
       (item: GistNode) => openInExternal(item),
-    ),
-    vscode.commands.registerCommand('gisthub.starGist', (item: GistNode) =>
-      starGistCommand(item, context, refreshCallback),
-    ),
-    vscode.commands.registerCommand('gisthub.unstarGist', (item: GistNode) =>
-      unstarGistCommand(item, context, refreshCallback),
     ),
     vscode.commands.registerCommand('gisthub.manageProviders', () =>
       openProviderManager(gistManager, context, refreshCallback),

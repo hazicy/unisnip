@@ -1,10 +1,8 @@
 import * as vscode from 'vscode';
 import { registerAllCommands } from './commands';
 import { GistFileSystemProvider } from './gistFileSystem';
-import { GistServiceManager } from './services/gist/gistManager';
+import { StorageServiceManager } from './services/storageManager';
 import { GistTreeProvider } from './views/tree/gistTreeData';
-import { StarTreeProvider } from './views/tree/starTreeData';
-import { DecorationProvider } from './views/tree/decorationProvider';
 import { GiteeAuthenticationProvider } from './giteeAuth';
 
 export const SCHEMA = 'gisthub';
@@ -24,17 +22,14 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   // 初始化 gist service manager
-  const gistManager = GistServiceManager.getInstance(context);
+  const gistManager = StorageServiceManager.getInstance(context);
   await gistManager.init();
-  const starDecorationProvider = new DecorationProvider(gistManager);
 
   // 创建树状图提供者
   const gistProvider = new GistTreeProvider(gistManager);
-  const starProvider = new StarTreeProvider(gistManager);
 
   // 注册树状图提供者
   vscode.window.registerTreeDataProvider('gistView', gistProvider);
-  vscode.window.registerTreeDataProvider('starView', starProvider);
   // vscode.window.registerFileDecorationProvider(starDecorationProvider);
 
   // 注册文件系统提供者
@@ -46,7 +41,6 @@ export async function activate(context: vscode.ExtensionContext) {
   // 刷新回调函数
   const refreshCallback = async () => {
     gistProvider?.refresh();
-    starProvider?.refresh();
     // await starDecorationProvider?.refresh();
   };
 
@@ -68,14 +62,6 @@ export async function activate(context: vscode.ExtensionContext) {
     },
   );
 
-  // 注册刷新 Star 视图命令
-  const refreshStarCommand = vscode.commands.registerCommand(
-    'gisthub.refreshStar',
-    () => {
-      starProvider?.refresh();
-    },
-  );
-
   // 注册所有其他命令
   const commandDisposables = registerAllCommands(
     gistManager,
@@ -87,7 +73,6 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     fileSystemDisposable,
     refreshCommand,
-    refreshStarCommand,
     ...commandDisposables,
   );
 

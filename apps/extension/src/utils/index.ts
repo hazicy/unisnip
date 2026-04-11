@@ -1,24 +1,24 @@
 import * as vscode from 'vscode';
 
 export function parseUri(uri: vscode.Uri): {
-  gistId: string;
+  storagePath: string;
   filename: string;
   providerId: string;
 } {
-  // URI: gisthub://providerId/filename?id=xxx
-
   const providerId = uri.authority;
   if (!providerId) {
     throw vscode.FileSystemError.FileNotFound(uri);
   }
 
-  const filename = uri.path.startsWith('/') ? uri.path.slice(1) : uri.path;
   const params = new URLSearchParams(uri.query);
-  const gistId = params.get('id');
+  const path = params.get('path');
 
-  if (!gistId) {
+  if (!path) {
     throw new Error(vscode.l10n.t('invalidGistUri'));
   }
 
-  return { gistId, filename: decodeURIComponent(filename), providerId };
+  const storagePath = decodeURIComponent(path);
+  const filename = storagePath.split('/').pop() || storagePath;
+
+  return { storagePath, filename, providerId };
 }

@@ -1,2 +1,3 @@
+export { StorageService } from './storageService';
+export { createStorageService, createGistService } from './factory';
 export { GistService } from './gistService';
-export { createGistService } from './factory';

@@ -70,14 +70,6 @@
       {
         "command": "gisthub.openInExternal",
         "title": "%gisthub.openInExternal%"
-      },
-      {
-        "command": "gisthub.starGist",
-        "title": "%gisthub.starGist.title%"
-      },
-      {
-        "command": "gisthub.unstarGist",
-        "title": "%gisthub.unstarGist.title%"
       }
     ],
     "menus": {
@@ -121,16 +113,6 @@
           "command": "gisthub.deleteGist",
           "when": "view == gistView && viewItem == gistFolder",
           "group": "navigation3"
-        },
-        {
-          "command": "gisthub.starGist",
-          "when": "view == gistView && viewItem == gistFolder",
-          "group": "navigation4"
-        },
-        {
-          "command": "gisthub.unstarGist",
-          "when": "view == starView && viewItem == gistFolder",
-          "group": "navigation4"
         }
       ],
       "view/title": [
@@ -142,11 +124,6 @@
         {
           "command": "gisthub.createGist",
           "when": "view == gistView",
-          "group": "navigation"
-        },
-        {
-          "command": "gisthub.refreshStar",
-          "when": "view == starView",
           "group": "navigation"
         }
       ]
@@ -166,11 +143,6 @@
           "icon": "./resources/icon.svg",
           "id": "gistView",
           "name": "Gists"
-        },
-        {
-          "icon": "./resources/icon.svg",
-          "id": "starView",
-          "name": "Starred"
         }
       ]
     },
@@ -188,10 +160,6 @@
     "viewsWelcome": [
       {
         "view": "gistView",
-        "contents": "%viewsWelcome.noProviders%"
-      },
-      {
-        "view": "starView",
         "contents": "%viewsWelcome.noProviders%"
       }
     ]

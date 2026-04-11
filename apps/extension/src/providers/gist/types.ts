@@ -1,23 +1,10 @@
-import * as vscode from 'vscode';
+import type { StorageConfig } from '@gisthub/core';
 
-import type {
-  GistProvider,
-  Gist,
-  CreateGistParams,
-  UpdateGistParams,
-  ProviderConfig,
-} from '@gisthub/core';
-import { GistProviderEnum } from '@gisthub/core';
-
-export type StarGistTreeItem = {
-  gist?: Gist;
-} & vscode.TreeItem;
-
-export type {
-  GistProvider,
-  Gist,
-  CreateGistParams,
-  UpdateGistParams,
-  ProviderConfig,
-};
-export { GistProviderEnum };
+/**
+ * Extension provider config persisted in VS Code globalState.
+ * Extends core StorageConfig with local management fields.
+ */
+export interface ProviderConfig extends StorageConfig {
+  id: string;
+  enabled?: boolean;
+}
