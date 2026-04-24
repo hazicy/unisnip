@@ -3,6 +3,7 @@ import { registerAllCommands } from './commands';
 import { GistFileSystemProvider } from './gistFileSystem';
 import { StorageServiceManager } from './services/storageManager';
 import { GistTreeProvider } from './views/tree/gistTreeData';
+import { ProviderTreeProvider } from './views/provider/providerTreeData';
 
 export const SCHEMA = 'gisthub';
 
@@ -13,9 +14,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // 创建树状图提供者
   const gistProvider = new GistTreeProvider(gistManager);
+  const providerView = new ProviderTreeProvider(gistManager);
 
   // 注册树状图提供者
   vscode.window.registerTreeDataProvider('gistView', gistProvider);
+  vscode.window.registerTreeDataProvider('providerView', providerView);
   // vscode.window.registerFileDecorationProvider(starDecorationProvider);
 
   // 注册文件系统提供者
@@ -27,6 +30,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // 刷新回调函数
   const refreshCallback = async () => {
     gistProvider?.refresh();
+    providerView?.refresh();
     // await starDecorationProvider?.refresh();
   };
 
@@ -72,6 +76,8 @@ export async function activate(context: vscode.ExtensionContext) {
       refreshCallback();
     },
   );
+
+  await context.secrets.delete('gist.services');
 }
 
 export function deactivate() {

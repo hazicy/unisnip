@@ -43,6 +43,21 @@
         "title": "%gisthub.manageProviders.title%"
       },
       {
+        "command": "gisthub.addProvider",
+        "title": "%gisthub.addProvider.title%",
+        "icon": "$(add)"
+      },
+      {
+        "command": "gisthub.reconnectProvider",
+        "title": "%gisthub.reconnectProvider.title%",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "gisthub.deleteProvider",
+        "title": "%gisthub.deleteProvider.title%",
+        "icon": "$(trash)"
+      },
+      {
         "command": "gisthub.renameGist",
         "title": "%gisthub.renameGist.title%"
       },
@@ -113,6 +128,16 @@
           "command": "gisthub.deleteGist",
           "when": "view == gistView && viewItem == gistFolder",
           "group": "navigation3"
+        },
+        {
+          "command": "gisthub.reconnectProvider",
+          "when": "view == providerView && viewItem == providerItem",
+          "group": "navigation"
+        },
+        {
+          "command": "gisthub.deleteProvider",
+          "when": "view == providerView && viewItem == providerItem",
+          "group": "navigation1"
         }
       ],
       "view/title": [
@@ -124,6 +149,21 @@
         {
           "command": "gisthub.createGist",
           "when": "view == gistView",
+          "group": "navigation"
+        },
+        {
+          "command": "gisthub.refreshProviders",
+          "when": "view == providerView",
+          "group": "navigation"
+        },
+        {
+          "command": "gisthub.addProvider",
+          "when": "view == providerView",
+          "group": "navigation"
+        },
+        {
+          "command": "gisthub.manageProviders",
+          "when": "view == providerView",
           "group": "navigation"
         }
       ]
@@ -143,6 +183,10 @@
           "icon": "./resources/icon.svg",
           "id": "gistView",
           "name": "Gists"
+        },
+        {
+          "id": "providerView",
+          "name": "Providers"
         }
       ]
     },
@@ -160,6 +204,10 @@
     "viewsWelcome": [
       {
         "view": "gistView",
+        "contents": "%viewsWelcome.noProviders%"
+      },
+      {
+        "view": "providerView",
         "contents": "%viewsWelcome.noProviders%"
       }
     ]

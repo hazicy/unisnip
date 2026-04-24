@@ -140,6 +140,30 @@ export async function openProviderManager(
   await handleManageProviders(configs, context, gistManager, refreshCallback);
 }
 
+export async function addProvider(
+  context: vscode.ExtensionContext,
+  refreshCallback?: () => void,
+): Promise<void> {
+  await handleAddProvider(context, refreshCallback);
+}
+
+export async function reconnectProviderById(
+  providerId: string,
+  gistManager: StorageServiceManager,
+  context: vscode.ExtensionContext,
+  refreshCallback?: () => void,
+): Promise<void> {
+  await reconnectProvider(providerId, gistManager, context, refreshCallback);
+}
+
+export async function deleteProviderById(
+  providerId: string,
+  gistManager: StorageServiceManager,
+  refreshCallback?: () => void,
+): Promise<void> {
+  await deleteProvider(providerId, gistManager, refreshCallback);
+}
+
 async function handleAddProvider(
   context: vscode.ExtensionContext,
   refreshCallback?: () => void,
@@ -260,7 +284,7 @@ async function executeProviderAction(
       break;
     case 'delete':
       if (item.providerId) {
-        await deleteProvider(item.providerId, gistManager);
+        await deleteProvider(item.providerId, gistManager, refreshCallback);
       }
       break;
   }
@@ -290,6 +314,7 @@ async function reconnectProvider(
 async function deleteProvider(
   providerId: string,
   gistManager: StorageServiceManager,
+  refreshCallback?: () => void,
 ): Promise<void> {
   const confirm = await vscode.window.showWarningMessage(
     vscode.l10n.t('confirmDelete', providerId),
@@ -302,6 +327,7 @@ async function deleteProvider(
   }
 
   await gistManager.removeService(providerId);
+  refreshCallback?.();
 
   vscode.window.showInformationMessage(
     vscode.l10n.t('providerDeleted', providerId),

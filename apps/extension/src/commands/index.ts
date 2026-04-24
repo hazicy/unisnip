@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
 import type { StorageServiceManager } from '../services/storageManager';
 import {
-  createFileCommand,
-  createGistCommand,
   deleteFileCommand,
   deleteGistCommand,
   openGist,
@@ -10,8 +8,14 @@ import {
   renameGist,
   uploadFileCommand,
 } from './gist';
-import { openProviderManager } from './provider';
+import {
+  addProvider,
+  deleteProviderById,
+  openProviderManager,
+  reconnectProviderById,
+} from './provider';
 import type { GistNode } from '../views/tree/treeItem';
+import { ProviderNode } from '../views/provider/providerTreeData';
 
 export function registerAllCommands(
   gistManager: StorageServiceManager,
@@ -30,12 +34,6 @@ export function registerAllCommands(
       'gisthub.deleteGistFile',
       (item: GistNode) => deleteFileCommand(item, context, refreshCallback),
     ),
-    vscode.commands.registerCommand('gisthub.createFile', (item: GistNode) =>
-      createFileCommand(item, context, refreshCallback),
-    ),
-    vscode.commands.registerCommand('gisthub.createGist', (item?: GistNode) =>
-      createGistCommand(context, refreshCallback, item),
-    ),
     vscode.commands.registerCommand('gisthub.uploadFile', () =>
       uploadFileCommand(context, refreshCallback),
     ),
@@ -46,6 +44,23 @@ export function registerAllCommands(
     vscode.commands.registerCommand('gisthub.manageProviders', () =>
       openProviderManager(gistManager, context, refreshCallback),
     ),
+    vscode.commands.registerCommand('gisthub.addProvider', () =>
+      addProvider(context, refreshCallback),
+    ),
+    vscode.commands.registerCommand(
+      'gisthub.reconnectProvider',
+      (item: ProviderNode) =>
+        reconnectProviderById(
+          item.config.id,
+          gistManager,
+          context,
+          refreshCallback,
+        ),
+    ),
+    vscode.commands.registerCommand('gisthub.deleteProvider', (item: ProviderNode) =>
+      deleteProviderById(item.config.id, gistManager, refreshCallback),
+    ),
+    vscode.commands.registerCommand('gisthub.refreshProviders', refreshCallback),
   ];
 
   return commands;

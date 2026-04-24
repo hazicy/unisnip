@@ -142,7 +142,9 @@ export class GitHubGistProvider implements StorageProvider {
 
     const response = await this.octokit.gists.get({ gist_id: gistId });
     const gist = response.data as unknown as Gist;
-    return Object.values(gist.files).map((file) => this.fileToEntry(gist, file));
+    return Object.values(gist.files).map((file) =>
+      this.fileToEntry(gist, file),
+    );
   }
 
   async getEntry(path: string): Promise<StorageEntry> {
@@ -303,7 +305,8 @@ export class GitHubGistProvider implements StorageProvider {
 
     const response = await this.octokit.gists.get({ gist_id: gistId });
     const gist = response.data as unknown as Gist;
-    const targetFilename = filename || Object.keys(gist.files)[0] || 'untitled.txt';
+    const targetFilename =
+      filename || Object.keys(gist.files)[0] || 'untitled.txt';
 
     const updatedResponse = await this.octokit.gists.update({
       gist_id: gistId,

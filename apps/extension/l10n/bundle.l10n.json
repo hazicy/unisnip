@@ -3,6 +3,7 @@
   "invalidGistUri": "Invalid Gist URL",
   "loadingGists": "Loading gists...",
   "errorFetchingGists": "Error fetching gists",
+  "errorFetchingProviders": "Error fetching providers",
   "noActiveProviders": "No active providers",
   "noStarredGists": "No starred gists",
   "unnamedGist": "Untitled Gist",

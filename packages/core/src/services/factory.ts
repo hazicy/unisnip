@@ -14,15 +14,6 @@ export function createStorageService(config: StorageConfig): StorageService {
     case StorageType.GitHub:
       return new StorageService(new GitHubProvider(rest.token, rest.proxyUrl));
 
-    // Backward compatibility for old persisted configs.
-    case StorageType.Gist:
-      if (subType === GistSubType.GitHub) {
-        return new StorageService(new GitHubProvider(rest.token, rest.proxyUrl));
-      }
-      throw new Error(
-        `Invalid legacy gist subtype: ${subType}. Required: ${GistSubType.GitHub}`,
-      );
-
     case StorageType.S3:
       if (!config.bucket) {
         throw new Error('S3 bucket is required');

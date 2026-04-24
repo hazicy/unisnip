@@ -3,6 +3,7 @@
   "invalidGistUri": "无效的 Gist 链接",
   "loadingGists": "正在加载 Gist...",
   "errorFetchingGists": "获取 Gist 时出错",
+  "errorFetchingProviders": "获取提供者时出错",
   "noActiveProviders": "没有可用的提供者",
   "noStarredGists": "没有星标的 Gist",
   "unnamedGist": "未命名的 Gist",
