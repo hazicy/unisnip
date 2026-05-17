@@ -36,7 +36,8 @@
       },
       {
         "command": "gisthub.refreshProviders",
-        "title": "%gisthub.refreshProviders.title%"
+        "title": "%gisthub.refreshProviders.title%",
+        "icon": "$(refresh)"
       },
       {
         "command": "gisthub.manageProviders",
@@ -158,11 +159,6 @@
         },
         {
           "command": "gisthub.addProvider",
-          "when": "view == providerView",
-          "group": "navigation"
-        },
-        {
-          "command": "gisthub.manageProviders",
           "when": "view == providerView",
           "group": "navigation"
         }

@@ -16,7 +16,7 @@ import {
   openProviderManager,
   reconnectProviderById,
 } from './provider';
-import type { GistNode } from '../views/tree/treeItem';
+import type { GistNode } from '../views/treeItem';
 import { ProviderNode } from '../views/providerTreeData';
 
 export function registerAllCommands(
