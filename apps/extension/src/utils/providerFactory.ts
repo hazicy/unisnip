@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { StorageType, type StorageConfig } from '@gisthub/core';
 import { StorageServiceManager } from '../services/storageManager';
 import type { ProviderConfig } from '../types';
 
@@ -10,22 +9,7 @@ export async function createProvider(
 ) {
   const manager = StorageServiceManager.getInstance(context);
 
-  const proxyUrl =
-    vscode.workspace
-      .getConfiguration('gisthub')
-      .get<string>('githubApiProxy', '') || undefined;
-
   const finalId = alias ?? config.id;
 
-  const finalConfig: ProviderConfig = {
-    ...config,
-    id: finalId,
-    proxyUrl: config.type === StorageType.GitHub ? proxyUrl : config.proxyUrl,
-  };
-
-  await manager.registerService(finalId, finalConfig);
-}
-
-export function buildGistConfig(type: StorageType.GitHub): StorageConfig {
-  return { type };
+  await manager.registerService(finalId, config);
 }

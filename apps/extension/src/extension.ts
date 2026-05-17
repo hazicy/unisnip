@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import { registerAllCommands } from './commands';
 import { GistFileSystemProvider } from './gistFileSystem';
 import { StorageServiceManager } from './services/storageManager';
-import { GistTreeProvider } from './views/tree/gistTreeData';
-import { ProviderTreeProvider } from './views/provider/providerTreeData';
+import { GistTreeProvider } from './views/gistTreeData';
+import { ProviderTreeProvider } from './views/providerTreeData';
 
 export const SCHEMA = 'gisthub';
 

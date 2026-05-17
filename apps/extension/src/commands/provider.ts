@@ -5,10 +5,6 @@ import { createProvider } from '../utils/providerFactory';
 import type { StorageServiceManager } from '../services/storageManager';
 
 const PROVIDER_OPTIONS = [
-  {
-    label: '$(mark-github) Add GitHub Gist',
-    value: { type: StorageType.GitHub } as const,
-  },
   { label: '$(database) Add S3', value: { type: StorageType.S3 } as const },
   {
     label: '$(server-environment) Add WebDAV',
@@ -17,8 +13,6 @@ const PROVIDER_OPTIONS = [
 ] as const;
 
 function getProviderIcon(config: ProviderConfig): string {
-  if (config.type === StorageType.GitHub) return '$(mark-github)';
-
   if (config.type === StorageType.S3) return '$(database)';
   if (config.type === StorageType.WebDAV) return '$(server-environment)';
 
@@ -26,8 +20,6 @@ function getProviderIcon(config: ProviderConfig): string {
 }
 
 function getProviderDescription(config: ProviderConfig): string {
-  if (config.type === StorageType.GitHub) return 'GitHub Gist';
-
   if (config.type === StorageType.S3) {
     return `S3 ${config.bucket ? `(${config.bucket})` : ''}`.trim();
   }
@@ -63,12 +55,6 @@ async function askText(
 async function buildConfigFromSelection(
   selection: (typeof PROVIDER_OPTIONS)[number]['value'],
 ): Promise<StorageConfig | undefined> {
-  if (
-    selection.type === StorageType.GitHub
-  ) {
-    return { type: selection.type };
-  }
-
   if (selection.type === StorageType.S3) {
     const bucket = await askText('S3 Bucket', 'my-bucket', true);
     if (!bucket) return undefined;

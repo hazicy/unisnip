@@ -8,7 +8,6 @@ import {
   CreateBucketCommand,
   DeleteBucketCommand,
   ListBucketsCommand,
-  S3ServiceException,
 } from '@aws-sdk/client-s3';
 import {
   StorageProvider,
@@ -41,7 +40,7 @@ export class S3Provider implements StorageProvider {
             }
           : undefined,
       endpoint: config.endpoint,
-      forcePathStyle: !!config.endpoint, // S3 兼容存储需要 path-style
+      forcePathStyle: false,
     });
 
     this.fileSizeLimit = DEFAULT_FILE_SIZE_LIMIT;

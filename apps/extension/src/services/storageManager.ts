@@ -6,7 +6,6 @@ import {
   StorageType,
 } from '@gisthub/core';
 import { loadServices, saveService } from '../store/serviceStorage';
-import { getGithubAccessToken } from './authService';
 import type { ProviderConfig } from '../types';
 
 export class StorageServiceManager {
@@ -27,24 +26,11 @@ export class StorageServiceManager {
   }
 
   private normalizeLegacyConfig(config: ProviderConfig): ProviderConfig {
-    if (config.type !== StorageType.Gist) {
-      return config;
-    }
-
-    if (config.subType === 'github') {
-      return { ...config, type: StorageType.GitHub };
-    }
-
     return config;
   }
 
   private async hydrateConfig(config: ProviderConfig): Promise<StorageConfig> {
     const normalized = this.normalizeLegacyConfig(config);
-
-    if (normalized.type === StorageType.GitHub) {
-      const token = await getGithubAccessToken();
-      return { ...normalized, token };
-    }
 
     return normalized;
   }
@@ -66,13 +52,6 @@ export class StorageServiceManager {
     }
 
     this.configs = normalizedSaved;
-
-    const hasLegacyConfig = saved.some(
-      (config) => config.type === StorageType.Gist,
-    );
-    if (hasLegacyConfig) {
-      await saveService(this.context, normalizedSaved);
-    }
   }
 
   async registerService(id: string, config: ProviderConfig) {

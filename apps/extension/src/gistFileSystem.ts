@@ -128,7 +128,8 @@ export class GistFileSystemProvider implements vscode.FileSystemProvider {
     _options: { readonly overwrite: boolean },
   ): Promise<void> {
     const { storagePath: oldPath, providerId } = parseUri(oldUri);
-    const { storagePath: newPath, providerId: newProviderId } = parseUri(newUri);
+    const { storagePath: newPath, providerId: newProviderId } =
+      parseUri(newUri);
 
     if (providerId !== newProviderId) {
       throw vscode.FileSystemError.NoPermissions(
@@ -166,7 +167,9 @@ export class GistFileSystemProvider implements vscode.FileSystemProvider {
       parseUri(destination);
 
     if (providerId !== destProviderId) {
-      throw vscode.FileSystemError.NoPermissions('Cannot copy across providers');
+      throw vscode.FileSystemError.NoPermissions(
+        'Cannot copy across providers',
+      );
     }
 
     const service = this.manager.getService(providerId);

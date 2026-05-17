@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import type { StorageServiceManager } from '../services/storageManager';
 import {
+  createFileCommand,
+  createGistCommand,
   deleteFileCommand,
   deleteGistCommand,
   openGist,
@@ -15,7 +17,7 @@ import {
   reconnectProviderById,
 } from './provider';
 import type { GistNode } from '../views/tree/treeItem';
-import { ProviderNode } from '../views/provider/providerTreeData';
+import { ProviderNode } from '../views/providerTreeData';
 
 export function registerAllCommands(
   gistManager: StorageServiceManager,
@@ -37,6 +39,12 @@ export function registerAllCommands(
     vscode.commands.registerCommand('gisthub.uploadFile', () =>
       uploadFileCommand(context, refreshCallback),
     ),
+    vscode.commands.registerCommand('gisthub.createFile', (item: GistNode) =>
+      createFileCommand(item, context, refreshCallback),
+    ),
+    vscode.commands.registerCommand('gisthub.createGist', (item?: GistNode) =>
+      createGistCommand(context, refreshCallback, item),
+    ),
     vscode.commands.registerCommand(
       'gisthub.openInExternal',
       (item: GistNode) => openInExternal(item),
@@ -57,10 +65,15 @@ export function registerAllCommands(
           refreshCallback,
         ),
     ),
-    vscode.commands.registerCommand('gisthub.deleteProvider', (item: ProviderNode) =>
-      deleteProviderById(item.config.id, gistManager, refreshCallback),
+    vscode.commands.registerCommand(
+      'gisthub.deleteProvider',
+      (item: ProviderNode) =>
+        deleteProviderById(item.config.id, gistManager, refreshCallback),
     ),
-    vscode.commands.registerCommand('gisthub.refreshProviders', refreshCallback),
+    vscode.commands.registerCommand(
+      'gisthub.refreshProviders',
+      refreshCallback,
+    ),
   ];
 
   return commands;

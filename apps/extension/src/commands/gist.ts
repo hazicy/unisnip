@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { SCHEMA } from '../extension';
 import { StorageServiceManager } from '../services/storageManager';
 import { isGistStorageType } from '@gisthub/core';
-import type { GistNode } from '../views/tree/treeItem';
+import type { GistNode } from '../views/treeItem';
 import { ZERO_WIDTH_SPACE } from '../constants';
 
 function buildUri(providerId: string, storagePath: string): vscode.Uri {

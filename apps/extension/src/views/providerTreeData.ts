@@ -1,10 +1,9 @@
 import * as vscode from 'vscode';
 import { StorageType } from '@gisthub/core';
-import type { ProviderConfig } from '../../types';
-import type { StorageServiceManager } from '../../services/storageManager';
+import type { ProviderConfig } from '../types';
+import type { StorageServiceManager } from '../services/storageManager';
 
 function getProviderIcon(type: StorageType): vscode.ThemeIcon {
-  if (type === StorageType.GitHub) return new vscode.ThemeIcon('mark-github');
   if (type === StorageType.S3) return new vscode.ThemeIcon('database');
   if (type === StorageType.WebDAV) {
     return new vscode.ThemeIcon('server-environment');
@@ -14,8 +13,6 @@ function getProviderIcon(type: StorageType): vscode.ThemeIcon {
 }
 
 function getProviderDescription(config: ProviderConfig): string {
-  if (config.type === StorageType.GitHub) return 'GitHub Gist';
-
   if (config.type === StorageType.S3) {
     return `S3 ${config.bucket ? `(${config.bucket})` : ''}`.trim();
   }
@@ -58,11 +55,12 @@ class ProviderErrorNode extends vscode.TreeItem {
   }
 }
 
-export type ProviderTreeItem = ProviderNode | ProviderEmptyNode | ProviderErrorNode;
+export type ProviderTreeItem =
+  | ProviderNode
+  | ProviderEmptyNode
+  | ProviderErrorNode;
 
-export class ProviderTreeProvider
-  implements vscode.TreeDataProvider<ProviderTreeItem>
-{
+export class ProviderTreeProvider implements vscode.TreeDataProvider<ProviderTreeItem> {
   private readonly _onDidChangeTreeData = new vscode.EventEmitter<
     ProviderTreeItem | undefined | null | void
   >();

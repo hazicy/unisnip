@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { StorageEntry } from '@gisthub/core';
-import type { StorageServiceManager } from '../../services/storageManager';
+import type { StorageServiceManager } from '../services/storageManager';
 import {
   EmptyNode,
   ErrorNode,

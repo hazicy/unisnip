@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { StorageEntry } from '@gisthub/core';
-import { SCHEMA } from '../../extension';
+import { SCHEMA } from '../extension';
 
 function encodePath(path: string): string {
   return encodeURIComponent(path);
