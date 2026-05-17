@@ -45,7 +45,5 @@
   "gisthub.starGist.title": "收藏 Gist",
   "gisthub.unstarGist.title": "取消收藏",
   "gistStarred": "Gist 已加星标",
-  "errorStarringGist": "加星标时出错",
-  "gistUnstarred": "Gist 已取消星标",
-  "errorUnstarringGist": "取消星标时出错"
+  "errorStarringGist": "加星标时出错"
 }

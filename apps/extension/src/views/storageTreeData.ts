@@ -9,7 +9,7 @@ import {
   type GistTreeItem,
 } from './treeItem';
 
-export class GistTreeProvider implements vscode.TreeDataProvider<GistTreeItem> {
+export class StorageTreeProvider implements vscode.TreeDataProvider<GistTreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<
     GistTreeItem | undefined | null | void
   >();

@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { registerAllCommands } from './commands';
 import { GistFileSystemProvider } from './gistFileSystem';
 import { StorageServiceManager } from './services/storageManager';
-import { GistTreeProvider } from './views/gistTreeData';
+import { StorageTreeProvider } from './views/storageTreeData';
 import { ProviderTreeProvider } from './views/providerTreeData';
 
 export const SCHEMA = 'gisthub';
@@ -13,7 +13,7 @@ export async function activate(context: vscode.ExtensionContext) {
   await gistManager.init();
 
   // 创建树状图提供者
-  const gistProvider = new GistTreeProvider(gistManager);
+  const gistProvider = new StorageTreeProvider(gistManager);
   const providerView = new ProviderTreeProvider(gistManager);
 
   // 注册树状图提供者

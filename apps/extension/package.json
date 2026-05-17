@@ -182,11 +182,11 @@
         {
           "icon": "./resources/icon.svg",
           "id": "gistView",
-          "name": "Gists"
+          "name": "%gisthub.gistViewName%"
         },
         {
           "id": "providerView",
-          "name": "Providers"
+          "name": "%gisthub.providerViewName%"
         }
       ]
     },
